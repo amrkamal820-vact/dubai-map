@@ -5,311 +5,243 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Dubai Map – PWA</title>
 
-  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=12"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=13"/>
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
-
-    .hud {
-      position: fixed; right: 10px; top: 10px; z-index: 1000;
-      background: rgba(0,0,0,.55); color: #fff; padding: 8px 10px; border-radius: 10px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px;
+    .hud{
+      position:fixed; right:10px; top:10px; z-index:1000;
+      background:rgba(0,0,0,.55); color:#fff; padding:8px 10px; border-radius:10px; font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     }
-
-    /* d-pad أسفل يمين */
-    .pad {
-      position: fixed; right: 12px; bottom: 12px; z-index: 1001;
-      display: grid; grid-template-columns: 56px 56px 56px; grid-template-rows: 56px 56px 56px;
-      gap: 6px; user-select: none;
+    .pad{
+      position:fixed; right:12px; bottom:12px; z-index:1001;
+      display:grid; grid-template-columns:56px 56px 56px; grid-template-rows:56px 56px 56px; gap:6px; user-select:none;
     }
-    .btn {
-      background: rgba(0,0,0,.45);
-      color: #fff; border-radius: 14px; display: flex; align-items: center; justify-content: center;
-      font-size: 18px; backdrop-filter: blur(6px);
-      touch-action: none;
+    .btn{ background:rgba(0,0,0,.45); color:#fff; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:18px; backdrop-filter:blur(6px); touch-action:none;}
+    .btn:active{ transform:scale(.97); }
+    .hidden{ visibility:hidden; }
+    #turboToggle{
+      position:fixed; left:12px; top:12px; z-index:1002;
+      border:0; border-radius:12px; padding:8px 12px; font-size:16px; font-weight:700; color:#000; background:rgba(255,213,0,.95); user-select:none;
     }
-    .btn:active { transform: scale(.97); }
-    .hidden { visibility: hidden; }
-
-    /* زر Turbo (Toggle) أعلى يسار */
-    #turboToggle {
-      position: fixed; left: 12px; top: 12px; z-index: 1002;
-      border: 0; border-radius: 12px; padding: 8px 12px; font-size: 16px; font-weight: 700;
-      color: #000; background: rgba(255,213,0,.95); user-select: none;
+    #turboToggle:active{ transform:scale(.96); }
+    #gpsBtn{
+      position:fixed; left:12px; bottom:12px; z-index:1002;
+      width:56px; height:56px; border-radius:50%; border:0; background:rgba(0,0,0,.55); color:#fff; font-size:22px; font-weight:700; display:grid; place-items:center; user-select:none; backdrop-filter:blur(6px);
     }
-    #turboToggle:active { transform: scale(.96); }
+    #gpsBtn:active{ transform:scale(.96); }
 
-    /* زر GPS أسفل يسار */
-    #gpsBtn {
-      position: fixed; left: 12px; bottom: 12px; z-index: 1002;
-      width: 56px; height: 56px; border-radius: 50%; border: 0;
-      background: rgba(0,0,0,.55); color: #fff; font-size: 22px; font-weight: 700;
-      display: grid; place-items: center; user-select: none;
-      backdrop-filter: blur(6px);
+    .poi-popup .leaflet-popup-content{ margin:8px 10px; font-size:14px; line-height:1.5; direction:rtl; }
+    .poi-popup .leaflet-popup-tip, .poi-popup .leaflet-popup-content-wrapper{ background:#111827; color:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.35); }
+
+    /* أيقونات Div سهلة بإيموجي */
+    .divicon{
+      background:#fff; border-radius:12px; border:2px solid #111827; padding:4px 6px; font-size:16px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,.15);
     }
-    #gpsBtn:active { transform: scale(.96); }
+    .divicon.mall{ border-color:#a21caf; }       /* مولات */
+    .divicon.attraction{ border-color:#ef4444;}  /* معالم سياحية */
+    .divicon.metro{ border-color:#0ea5e9;}       /* مترو */
+    .divicon.hospital{ border-color:#16a34a;}    /* مستشفى */
+    .divicon.police{ border-color:#1f2937;}      /* شرطة */
+    .divicon.beach{ border-color:#f59e0b;}       /* شاطئ */
 
-    /* فقاعة دردشة */
-    .poi-popup .leaflet-popup-content { margin: 8px 10px; font-size: 14px; line-height: 1.5; direction: rtl; }
-    .poi-popup .leaflet-popup-tip, .poi-popup .leaflet-popup-content-wrapper {
-      background: #111827; color: #fff; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,.35);
-    }
-
-    @media (min-width: 900px) {
-      .pad { right: 20px; bottom: 20px; }
-      #gpsBtn { left: 20px; bottom: 20px; }
+    @media (min-width:900px){
+      .pad{ right:20px; bottom:20px; }
+      #gpsBtn{ left:20px; bottom:20px; }
     }
   </style>
 </head>
 <body>
-  <div class="hud">↑↓←→ للتحرّك · كبّر/صغّر باللمس · ⚡ للتيربو (تشغيل/إيقاف) · 🧭 لتحديد موقعي</div>
-
+  <div class="hud">↑↓←→ للتحرّك · كبّر/صغّر باللمس · ⚡ Turbo · 🧭 GPS · معالم مصنّفة من الكنترول يمين</div>
   <div id="map"></div>
 
-  <!-- زر Toggle Turbo -->
   <button id="turboToggle">⚡ Turbo OFF</button>
-
-  <!-- زر GPS -->
   <button id="gpsBtn" title="اذهب إلى موقعي">🧭</button>
 
-  <!-- d-pad للموبايل (↑ / ← / → / ↓) -->
   <div class="pad" id="pad">
-    <div class="hidden"></div>
-    <div class="btn" data-k="ArrowUp">↑</div>
-    <div class="hidden"></div>
-
-    <div class="btn" data-k="ArrowLeft">←</div>
-    <div class="hidden"></div>
-    <div class="btn" data-k="ArrowRight">→</div>
-
-    <div class="hidden"></div>
-    <div class="btn" data-k="ArrowDown">↓</div>
-    <div class="hidden"></div>
+    <div class="hidden"></div><div class="btn" data-k="ArrowUp">↑</div><div class="hidden"></div>
+    <div class="btn" data-k="ArrowLeft">←</div><div class="hidden"></div><div class="btn" data-k="ArrowRight">→</div>
+    <div class="hidden"></div><div class="btn" data-k="ArrowDown">↓</div><div class="hidden"></div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=12"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=13"></script>
   <script>
-    // إجبار تحديث SW
+    // تحديث SW
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?ver=12').then(r => r.update?.()).catch(console.warn);
+        navigator.serviceWorker.register('./service-worker.js?ver=13').then(r=>r.update?.()).catch(console.warn);
       });
     }
 
-    // الخريطة
-    const dubai = [25.2048, 55.2708];
-    const map = L.map('map', { zoomControl: true }).setView(dubai, 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
-    }).addTo(map);
+    // خريطة
+    const dubai = [25.2048,55.2708];
+    const map = L.map('map',{zoomControl:true}).setView(dubai,13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);
 
-    // اللاعب
-    const playerIcon = L.icon({ iconUrl: 'player.png', iconSize: [44,44], iconAnchor: [22,22] });
-    const player = L.marker(dubai, { draggable:false, icon: playerIcon }).addTo(map);
+    // لاعب + easing
+    const playerIcon = L.icon({iconUrl:'player.png',iconSize:[44,44],iconAnchor:[22,22]});
+    const player = L.marker(dubai,{draggable:false,icon:playerIcon}).addTo(map);
 
-    // موضع حالي + هدف (للإيـزنج)
-    let lat = dubai[0], lng = dubai[1];
-    let tLat = lat,   tLng = lng; // targets
+    let lat=dubai[0], lng=dubai[1], tLat=lat, tLng=lng;
 
-    // استرجاع آخر موقع
-    try {
-      const saved = JSON.parse(localStorage.getItem('playerPos'));
-      if (Array.isArray(saved)) { lat = saved[0]; lng = saved[1]; tLat = lat; tLng = lng; player.setLatLng(saved); map.setView(saved); }
-    } catch {}
+    try{ const saved=JSON.parse(localStorage.getItem('playerPos')); if(Array.isArray(saved)){ lat=saved[0]; lng=saved[1]; tLat=lat; tLng=lng; player.setLatLng(saved); map.setView(saved);} }catch{}
 
-    // حفظ متباعد
-    let saveAccum = 0;
-    function savePos(dt){
-      saveAccum += dt;
-      if (saveAccum >= 0.5) {
-        localStorage.setItem('playerPos', JSON.stringify([lat, lng]));
-        saveAccum = 0;
-      }
-    }
+    let saveAccum=0; function savePos(dt){ saveAccum+=dt; if(saveAccum>=0.5){ localStorage.setItem('playerPos',JSON.stringify([lat,lng])); saveAccum=0; } }
+    function nudgeTarget(dx,dy){ tLng+=dx; tLat+=dy; }
 
-    // الحركة: نحدّث الهدف فقط
-    function nudgeTarget(dx, dy) {
-      tLng += dx;  // dx → lng (يمين/يسار)
-      tLat += dy;  // dy → lat (فوق/تحت)
-    }
+    const WALK_SPEED_MPS=40, SPRINT_SPEED_MPS=180, METERS_PER_DEG_LAT=111000;
+    const SMOOTH=0.18, PAN_OPTS={animate:true, duration:0.15, easeLinearity:0.25};
 
-    // سرعات + سموث
-    const WALK_SPEED_MPS   = 40;
-    const SPRINT_SPEED_MPS = 180;
-    const METERS_PER_DEG_LAT = 111000;
-    const SMOOTH = 0.18;
-    const PAN_OPTS = { animate: true, duration: 0.15, easeLinearity: 0.25 };
+    let held={up:false,down:false,left:false,right:false,sprint:false};
+    const turboBtn=document.getElementById('turboToggle');
+    function renderTurbo(){ turboBtn.textContent=held.sprint?'⚡ Turbo ON':'⚡ Turbo OFF'; turboBtn.style.background=held.sprint?'rgba(255,80,0,.95)':'rgba(255,213,0,.95)'; }
+    turboBtn.addEventListener('click',()=>{ held.sprint=!held.sprint; renderTurbo(); }); renderTurbo();
 
-    // الحالة + Toggle Turbo
-    let held = { up:false, down:false, left:false, right:false, sprint:false };
-    const turboBtn = document.getElementById('turboToggle');
-    function renderTurbo(){
-      turboBtn.textContent = held.sprint ? '⚡ Turbo ON' : '⚡ Turbo OFF';
-      turboBtn.style.background = held.sprint ? 'rgba(255,80,0,.95)' : 'rgba(255,213,0,.95)';
-    }
-    turboBtn.addEventListener('click', () => { held.sprint = !held.sprint; renderTurbo(); });
-    renderTurbo();
+    window.addEventListener('keydown',e=>{ if(e.key==='ArrowUp')held.up=true; if(e.key==='ArrowDown')held.down=true; if(e.key==='ArrowLeft')held.left=true; if(e.key==='ArrowRight')held.right=true; if(e.key==='Shift'){held.sprint=true; renderTurbo();} });
+    window.addEventListener('keyup',e=>{ if(e.key==='ArrowUp')held.up=false; if(e.key==='ArrowDown')held.down=false; if(e.key==='ArrowLeft')held.left=false; if(e.key==='ArrowRight')held.right=false; if(e.key==='Shift'){held.sprint=false; renderTurbo();} });
 
-    // كيبورد
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowUp')    held.up = true;
-      if (e.key === 'ArrowDown')  held.down = true;
-      if (e.key === 'ArrowLeft')  held.left = true;
-      if (e.key === 'ArrowRight') held.right = true;
-      if (e.key === 'Shift')      { held.sprint = true; renderTurbo(); }
-    });
-    window.addEventListener('keyup', (e) => {
-      if (e.key === 'ArrowUp')    held.up = false;
-      if (e.key === 'ArrowDown')  held.down = false;
-      if (e.key === 'ArrowLeft')  held.left = false;
-      if (e.key === 'ArrowRight') held.right = false;
-      if (e.key === 'Shift')      { held.sprint = false; renderTurbo(); }
-    });
+    const pad=document.getElementById('pad');
+    function setHeldFromTarget(t,val){ const k=t.getAttribute('data-k'); if(!k)return; if(k==='ArrowUp')held.up=val; if(k==='ArrowDown')held.down=val; if(k==='ArrowLeft')held.left=val; if(k==='ArrowRight')held.right=val; }
+    pad.addEventListener('pointerdown',e=>{ const t=e.target.closest('.btn'); if(!t)return; setHeldFromTarget(t,true); t.setPointerCapture?.(e.pointerId); });
+    pad.addEventListener('pointerup',e=>{ const t=e.target.closest('.btn'); if(!t)return; setHeldFromTarget(t,false); });
+    pad.addEventListener('pointercancel',()=>{ held={up:false,down:false,left:false,right:false,sprint:held.sprint}; });
 
-    // لمس (d-pad)
-    const pad = document.getElementById('pad');
-    function setHeldFromTarget(t, val) {
-      const k = t.getAttribute('data-k'); if (!k) return;
-      if (k === 'ArrowUp')    held.up    = val;
-      if (k === 'ArrowDown')  held.down  = val;
-      if (k === 'ArrowLeft')  held.left  = val;
-      if (k === 'ArrowRight') held.right = val;
-    }
-    pad.addEventListener('pointerdown', (e) => {
-      const t = e.target.closest('.btn'); if (!t) return;
-      setHeldFromTarget(t, true);
-      t.setPointerCapture?.(e.pointerId);
-    });
-    pad.addEventListener('pointerup',   (e) => { const t = e.target.closest('.btn'); if (!t) return; setHeldFromTarget(t, false); });
-    pad.addEventListener('pointercancel',() => { held = {up:false,down:false,left:false,right:false,sprint:held.sprint}; });
+    // POI قربك + Ding
+    function distMeters(aLat,aLng,bLat,bLng){ const R=6371000,toRad=d=>d*Math.PI/180; const dLat=toRad(bLat-aLat),dLng=toRad(bLng-aLng); const s1=Math.sin(dLat/2),s2=Math.sin(dLng/2); const A=s1*s1+Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*s2*s2; return 2*R*Math.asin(Math.min(1,Math.sqrt(A))); }
+    const NEAR=250; let activePOI=null, popupTimer=null; const cooldown={};
+    function playDing(){ try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=0.001; o.connect(g).connect(ctx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.2,ctx.currentTime+0.02); g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.18); o.stop(ctx.currentTime+0.2);}catch(e){} }
+    function openPOI(p){ activePOI=p.name; player.bindPopup(p.msg,{offset:[0,-28],autoPan:false,closeButton:false,className:'poi-popup'}).openPopup(); playDing(); if(popupTimer)clearTimeout(popupTimer); popupTimer=setTimeout(()=>{ player.closePopup(); activePOI=null; cooldown[p.name]=performance.now()+3000; },4000); }
+    function updatePOIPopup(){ let found=null; for(const p of corePOIs){ if(distMeters(lat,lng,p.pos[0],p.pos[1])<=NEAR){ found=p; break; } } const now=performance.now(); if(found){ const cd=cooldown[found.name]||0; if(!activePOI && now>cd) openPOI(found); } else { if(activePOI){ player.closePopup(); activePOI=null; } if(popupTimer){ clearTimeout(popupTimer); popupTimer=null; } } }
 
-    // === نقاط اهتمام + فقاعة دردشة ===
-    const pois = [
-      { name: 'Dubai Mall',     pos: [25.1975, 55.2790],   msg: 'أنت بالقرب من <b>Dubai Mall</b> 🛍️' },
-      { name: 'Burj Khalifa',   pos: [25.1972, 55.2744],   msg: 'أنت بالقرب من <b>Burj Khalifa</b> 🗼' },
-      { name: 'Marina Walk',    pos: [25.0797, 55.1400],   msg: 'أنت بالقرب من <b>Dubai Marina Walk</b> 🌊' },
-      { name: 'DXB T3',         pos: [25.2487, 55.3526],   msg: 'أنت بالقرب من <b>Dubai Int’l Airport – T3</b> ✈️' },
-      { name: 'Deira City Ctr', pos: [25.2532, 55.3349],   msg: 'أنت بالقرب من <b>Deira City Centre</b> 🛒' },
+    // === المعالم المصنّفة ===
+    // دالة أيقونة Div بإيموجي وفئة CSS للتلوين
+    function ico(emoji, cls=''){ return L.divIcon({ html:`<div class="divicon ${cls}">${emoji}</div>`, className:'', iconSize:[28,28], iconAnchor:[14,14] }); }
+
+    // مجموعات طبقات
+    const gAttractions = L.layerGroup();   // معالم سياحية
+    const gMalls       = L.layerGroup();   // مولات
+    const gMetro       = L.layerGroup();   // مترو
+    const gHospitals   = L.layerGroup();   // مستشفيات
+    const gPolice      = L.layerGroup();   // شرطة
+    const gBeaches     = L.layerGroup();   // شواطئ
+
+    // بيانات سريعة (تقدر تزود براحتك)
+    const attractions = [
+      {name:'Burj Khalifa',   pos:[25.1972,55.2744], icon:ico('🗼','attraction'), info:'أطول برج في العالم'},
+      {name:'Museum of the Future', pos:[25.2269,55.2865], icon:ico('🏛️','attraction'), info:'متحف المستقبل'},
+      {name:'Dubai Frame',    pos:[25.2343,55.3001], icon:ico('🖼️','attraction'), info:'برواز دبي'},
+      {name:'Ain Dubai',      pos:[25.0775,55.1200], icon:ico('🎡','attraction'), info:'عين دبي'},
     ];
-    pois.forEach(p => L.circleMarker(p.pos, { radius: 6 }).addTo(map).bindPopup(p.name));
+    const malls = [
+      {name:'Dubai Mall',     pos:[25.1975,55.2790], icon:ico('🛍️','mall'), info:'أكبر مول في دبي'},
+      {name:'Mall of the Emirates', pos:[25.1180,55.2007], icon:ico('🛒','mall'), info:'سكي دبي'},
+      {name:'Ibn Battuta Mall',    pos:[25.0445,55.1187], icon:ico('🛍️','mall'), info:'تصاميم عالمية'},
+      {name:'Deira City Centre',   pos:[25.2532,55.3349], icon:ico('🛍️','mall'), info:'Deira City Centre'},
+    ];
+    const metro = [
+      {name:'Burj Khalifa/Dubai Mall', pos:[25.2061,55.2724], icon:ico('🚇','metro')},
+      {name:'Mall of the Emirates',    pos:[25.1186,55.2002], icon:ico('🚇','metro')},
+      {name:'Dubai Marina',            pos:[25.0789,55.1411], icon:ico('🚇','metro')},
+      {name:'Airport T3',              pos:[25.2479,55.3525], icon:ico('🚇','metro')},
+    ];
+    const hospitals = [
+      {name:'Rashid Hospital',   pos:[25.2402,55.3119], icon:ico('🏥','hospital')},
+      {name:'Dubai Hospital',    pos:[25.2766,55.3160], icon:ico('🏥','hospital')},
+      {name:'Mediclinic City',   pos:[25.1249,55.2022], icon:ico('🏥','hospital')},
+    ];
+    const police = [
+      {name:'Dubai Police HQ', pos:[25.2482,55.3307], icon:ico('👮','police')},
+      {name:'Jumeirah Police', pos:[25.2029,55.2448], icon:ico('👮','police')},
+    ];
+    const beaches = [
+      {name:'JBR Beach',     pos:[25.0770,55.1324], icon:ico('🏖️','beach')},
+      {name:'Kite Beach',    pos:[25.1807,55.2327], icon:ico('🏖️','beach')},
+      {name:'La Mer Beach',  pos:[25.2460,55.2815], icon:ico('🏖️','beach')},
+    ];
 
-    function distMeters(aLat,aLng,bLat,bLng){
-      const R=6371000, toRad=(d)=>d*Math.PI/180;
-      const dLat=toRad(bLat-aLat), dLng=toRad(bLng-aLng);
-      const s1=Math.sin(dLat/2), s2=Math.sin(dLng/2);
-      const A=s1*s1 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*s2*s2;
-      return 2*R*Math.asin(Math.min(1, Math.sqrt(A)));
+    // أضف الماركرز مع Popups
+    function addListToGroup(list, group){
+      list.forEach(p=>{
+        const m=L.marker(p.pos,{icon:p.icon}).addTo(group);
+        m.bindPopup(`<b>${p.name}</b>${p.info?'<br>'+p.info:''}`);
+      });
     }
+    addListToGroup(attractions,gAttractions);
+    addListToGroup(malls,gMalls);
+    addListToGroup(metro,gMetro);
+    addListToGroup(hospitals,gHospitals);
+    addListToGroup(police,gPolice);
+    addListToGroup(beaches,gBeaches);
 
-    const NEAR = 250;
-    let activePOI = null, popupTimer = null;
-    const cooldown = {};
-    function playDing() {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const o = ctx.createOscillator(), g = ctx.createGain();
-        o.type = 'sine'; o.frequency.value = 880;
-        g.gain.value = 0.001; o.connect(g).connect(ctx.destination); o.start();
-        g.gain.exponentialRampToValueAtTime(0.2,  ctx.currentTime + 0.02);
-        g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime + 0.18);
-        o.stop(ctx.currentTime + 0.2);
-      } catch(e){}
-    }
-    function openPOI(p) {
-      activePOI = p.name;
-      player.bindPopup(p.msg, { offset:[0,-28], autoPan:false, closeButton:false, className:'poi-popup' }).openPopup();
-      playDing();
-      if (popupTimer) clearTimeout(popupTimer);
-      popupTimer = setTimeout(() => {
-        player.closePopup(); activePOI = null; cooldown[p.name] = performance.now() + 3000;
-      }, 4000);
-    }
-    function updatePOIPopup() {
-      let found = null;
-      for (const p of pois) {
-        if (distMeters(lat, lng, p.pos[0], p.pos[1]) <= NEAR) { found = p; break; }
-      }
-      const now = performance.now();
-      if (found) {
-        const cd = cooldown[found.name] || 0;
-        if (!activePOI && now > cd) openPOI(found);
-      } else {
-        if (activePOI) { player.closePopup(); activePOI = null; }
-        if (popupTimer) { clearTimeout(popupTimer); popupTimer = null; }
-      }
-    }
+    // أضف الطبقات للخريطة (تكون شغّالة افتراضيًا لبعضها)
+    gAttractions.addTo(map);
+    gMalls.addTo(map);
+    gMetro.addTo(map);
 
-    // زر GPS — يحركك لمكانك الحقيقي
-    const gpsBtn = document.getElementById('gpsBtn');
-    gpsBtn.addEventListener('click', () => {
-      if (!('geolocation' in navigator)) {
-        alert('المتصفح لا يدعم تحديد الموقع الجغرافي (GPS).');
-        return;
-      }
-      gpsBtn.disabled = true; gpsBtn.style.opacity = 0.7;
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          gpsBtn.disabled = false; gpsBtn.style.opacity = 1;
-          const { latitude, longitude, accuracy } = pos.coords;
+    // كنترول طبقات (يمين أعلى افتراضي)
+    const overlays = {
+      "🗼 معالم": gAttractions,
+      "🛍️ مولات": gMalls,
+      "🚇 مترو": gMetro,
+      "🏥 مستشفيات": gHospitals,
+      "👮 شرطة": gPolice,
+      "🏖️ شواطئ": gBeaches,
+    };
+    L.control.layers(null, overlays, { collapsed:true, position:'topright' }).addTo(map);
 
-          // حدّث الهدف وحرّك بانسيابية
-          tLat = latitude; tLng = longitude;
-          lat  = latitude; lng  = longitude; // نقفز فورًا عشان تظهر النتيجة واضحة
-          player.setLatLng([lat,lng]);
-          map.setView([lat, lng], Math.max(map.getZoom(), 16), { animate: true, duration: 0.4 });
+    // نقاط قرب (لرسائل فوق اللاعب) – بنستخدم بعض المعالم الأساسية فقط
+    const corePOIs = [
+      { name:'Dubai Mall', pos:[25.1975,55.2790], msg:'أنت بالقرب من <b>Dubai Mall</b> 🛍️' },
+      { name:'Burj Khalifa', pos:[25.1972,55.2744], msg:'أنت بالقرب من <b>Burj Khalifa</b> 🗼' },
+      { name:'Marina Walk', pos:[25.0797,55.1400], msg:'أنت بالقرب من <b>Dubai Marina Walk</b> 🌊' },
+      { name:'DXB T3', pos:[25.2487,55.3526], msg:'أنت بالقرب من <b>Dubai Int’l Airport – T3</b> ✈️' },
+      { name:'Deira City Ctr', pos:[25.2532,55.3349], msg:'أنت بالقرب من <b>Deira City Centre</b> 🛒' },
+    ];
 
-          // وميض دائرة دقّة لثواني
-          const circle = L.circle([lat,lng], { radius: Math.max(accuracy, 25), color:'#3b82f6', fillColor:'#60a5fa', fillOpacity:0.2, weight:1 }).addTo(map);
-          setTimeout(()=> map.removeLayer(circle), 4000);
-        },
-        (err) => {
-          gpsBtn.disabled = false; gpsBtn.style.opacity = 1;
-          alert('تعذّر تحديد الموقع: ' + (err.message || err.code));
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
-      );
+    // GPS
+    const gpsBtn=document.getElementById('gpsBtn');
+    gpsBtn.addEventListener('click',()=>{
+      if(!('geolocation' in navigator)){ alert('المتصفح لا يدعم GPS'); return; }
+      gpsBtn.disabled=true; gpsBtn.style.opacity=0.7;
+      navigator.geolocation.getCurrentPosition(pos=>{
+        gpsBtn.disabled=false; gpsBtn.style.opacity=1;
+        const {latitude,longitude,accuracy}=pos.coords;
+        tLat=latitude; tLng=longitude; lat=latitude; lng=longitude;
+        player.setLatLng([lat,lng]);
+        map.setView([lat,lng], Math.max(map.getZoom(),16), {animate:true,duration:0.4});
+        const circle=L.circle([lat,lng],{radius:Math.max(accuracy,25),color:'#3b82f6',fillColor:'#60a5fa',fillOpacity:0.2,weight:1}).addTo(map);
+        setTimeout(()=>map.removeLayer(circle),4000);
+      }, err=>{ gpsBtn.disabled=false; gpsBtn.style.opacity=1; alert('تعذّر تحديد الموقع: '+(err.message||err.code)); }, {enableHighAccuracy:true, timeout:10000, maximumAge:300000});
     });
 
-    // حلقة اللعبة: سموث إيـزنج نحو الهدف
-    let last = performance.now();
-    function tick(now) {
-      const dt = (now - last) / 1000; last = now;
+    // حلقة الحركة (easing)
+    let last=performance.now();
+    function tick(now){
+      const dt=(now-last)/1000; last=now;
+      const speedMps=held.sprint?SPRINT_SPEED_MPS:WALK_SPEED_MPS;
+      const stepDeg=(speedMps/METERS_PER_DEG_LAT)*dt;
 
-      // سرعة حسب التيربو
-      const speedMps = held.sprint ? SPRINT_SPEED_MPS : WALK_SPEED_MPS;
-      const stepDeg  = (speedMps / METERS_PER_DEG_LAT) * dt;
+      const vx=(held.right?1:0)-(held.left?1:0);
+      const vy=(held.up?1:0)-(held.down?1:0);
+      if(vx||vy) nudgeTarget(vx*stepDeg, vy*stepDeg);
 
-      // اتجاه مطلوب → نحدّث الهدف
-      const vx = (held.right ? 1 : 0) - (held.left ? 1 : 0); // يمين +
-      const vy = (held.up    ? 1 : 0) - (held.down ? 1 : 0); // فوق +
-      if (vx || vy) nudgeTarget(vx * stepDeg, vy * stepDeg);
+      const dLat=tLat-lat, dLng=tLng-lng;
+      lat+=dLat*SMOOTH; lng+=dLng*SMOOTH;
 
-      // حركة انزلاقية نحو الهدف (lerp)
-      const dLat = tLat - lat;
-      const dLng = tLng - lng;
-      lat += dLat * SMOOTH;
-      lng += dLng * SMOOTH;
-
-      // تحديث الماركر والخريطة
-      const p = [lat, lng];
+      const p=[lat,lng];
       player.setLatLng(p);
-      map.panTo(p, PAN_OPTS);
+      map.panTo(p,PAN_OPTS);
 
       savePos(dt);
       updatePOIPopup();
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
-
-    // تحديث أولي
-    updatePOIPopup();
   </script>
 </body>
 </html>
