@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=7"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=8"/>
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
@@ -37,13 +37,23 @@
     .btn:active { transform: scale(.97); }
     .hidden { visibility: hidden; }
 
-    /* زر Turbo المتحوّل (Toggle) أعلى يسار */
+    /* زر Turbo (تشغيل/إيقاف) أعلى يسار */
     #turboToggle {
       position: fixed; left: 12px; top: 12px; z-index: 1002;
       border: 0; border-radius: 12px; padding: 8px 12px; font-size: 16px; font-weight: 700;
       color: #000; background: rgba(255,213,0,.95); user-select: none;
     }
     #turboToggle:active { transform: scale(.96); }
+
+    /* ستايل فقاعة الدردشة */
+    .poi-popup .leaflet-popup-content {
+      margin: 8px 10px; font-size: 14px; line-height: 1.5; direction: rtl;
+    }
+    .poi-popup .leaflet-popup-tip,
+    .poi-popup .leaflet-popup-content-wrapper {
+      background: #111827; color: #fff; border-radius: 10px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.35);
+    }
 
     @media (min-width: 900px) { .pad { right: 20px; bottom: 20px; } }
   </style>
@@ -71,12 +81,12 @@
     <div class="hidden"></div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=7"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=8"></script>
   <script>
-    // أجبر تحديث SW عشان تغييرات الاتجاهات/التيربو تظهر فورًا
+    // أجبر تحديث SW عشان تظهر التغييرات فورًا
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?ver=7').then(r => r.update?.()).catch(console.warn);
+        navigator.serviceWorker.register('./service-worker.js?ver=8').then(r => r.update?.()).catch(console.warn);
       });
     }
 
@@ -99,7 +109,7 @@
     } catch {}
 
     function move(dx, dy) {
-      // dx يؤثر على LNG (يمين/يسار) — dy يؤثر على LAT (فوق/تحت)
+      // dx → LNG (يمين/يسار) ، dy → LAT (فوق/تحت)
       lng += dx;
       lat += dy;
       const p = [lat, lng];
@@ -110,11 +120,18 @@
 
     // سرعات
     const WALK_SPEED_MPS   = 40;    // مشي سريع
-    const SPRINT_SPEED_MPS = 180;   // Turbo أسرع بشكل واضح
+    const SPRINT_SPEED_MPS = 180;   // Turbo سريع
     const METERS_PER_DEG_LAT = 111000;
 
-    // الحالة
+    // الحالة + Turbo Toggle
     let held = { up:false, down:false, left:false, right:false, sprint:false };
+    const turboBtn = document.getElementById('turboToggle');
+    function renderTurbo(){
+      turboBtn.textContent = held.sprint ? '⚡ Turbo ON' : '⚡ Turbo OFF';
+      turboBtn.style.background = held.sprint ? 'rgba(255,80,0,.95)' : 'rgba(255,213,0,.95)';
+    }
+    turboBtn.addEventListener('click', () => { held.sprint = !held.sprint; renderTurbo(); });
+    renderTurbo();
 
     // كيبورد
     window.addEventListener('keydown', (e) => {
@@ -122,14 +139,14 @@
       if (e.key === 'ArrowDown')  held.down = true;
       if (e.key === 'ArrowLeft')  held.left = true;
       if (e.key === 'ArrowRight') held.right = true;
-      if (e.key === 'Shift')      held.sprint = true;
+      if (e.key === 'Shift')      { held.sprint = true; renderTurbo(); }
     });
     window.addEventListener('keyup', (e) => {
       if (e.key === 'ArrowUp')    held.up = false;
       if (e.key === 'ArrowDown')  held.down = false;
       if (e.key === 'ArrowLeft')  held.left = false;
       if (e.key === 'ArrowRight') held.right = false;
-      if (e.key === 'Shift')      held.sprint = false;
+      if (e.key === 'Shift')      { held.sprint = false; renderTurbo(); }
     });
 
     // لمس (d-pad)
@@ -147,27 +164,59 @@
       t.setPointerCapture?.(e.pointerId);
     });
     pad.addEventListener('pointerup',   (e) => { const t = e.target.closest('.btn'); if (!t) return; setHeldFromTarget(t, false); });
-    pad.addEventListener('pointercancel',() => { held = {up:false,down:false,left:false,right:false,sprint:false}; });
+    pad.addEventListener('pointercancel',() => { held = {up:false,down:false,left:false,right:false,sprint:held.sprint}; });
 
-    // زر Toggle Turbo (تشغيل/إيقاف)
-    const turboBtn = document.getElementById('turboToggle');
-    function renderTurbo(){
-      turboBtn.textContent = held.sprint ? '⚡ Turbo ON' : '⚡ Turbo OFF';
-      turboBtn.style.background = held.sprint ? 'rgba(255,80,0,.95)' : 'rgba(255,213,0,.95)';
+    // === نقاط اهتمام (POIs) + فقاعة دردشة عند الاقتراب ===
+    const pois = [
+      { name: 'Dubai Mall',     pos: [25.1975, 55.2790],   msg: 'أنت بالقرب من <b>Dubai Mall</b> 🛍️' },
+      { name: 'Burj Khalifa',   pos: [25.1972, 55.2744],   msg: 'أنت بالقرب من <b>Burj Khalifa</b> 🗼' },
+      { name: 'Marina Walk',    pos: [25.0797, 55.1400],   msg: 'أنت بالقرب من <b>Dubai Marina Walk</b> 🌊' },
+      { name: 'DXB T3',         pos: [25.2487, 55.3526],   msg: 'أنت بالقرب من <b>Dubai Int’l Airport – T3</b> ✈️' },
+      { name: 'Deira City Ctr', pos: [25.2532, 55.3349],   msg: 'أنت بالقرب من <b>Deira City Centre</b> 🛒' },
+    ];
+
+    // مَعلِّمات بسيطة على الخريطة (اختياري)
+    pois.forEach(p => L.circleMarker(p.pos, { radius: 6 }).addTo(map).bindPopup(p.name));
+
+    // دالة مسافة (Haversine) بالمتر
+    function distMeters(aLat,aLng,bLat,bLng){
+      const R=6371000;
+      const toRad=(d)=>d*Math.PI/180;
+      const dLat=toRad(bLat-aLat), dLng=toRad(bLng-aLng);
+      const s1=Math.sin(dLat/2), s2=Math.sin(dLng/2);
+      const A=s1*s1 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*s2*s2;
+      return 2*R*Math.asin(Math.min(1, Math.sqrt(A)));
     }
-    turboBtn.addEventListener('click', () => { held.sprint = !held.sprint; renderTurbo(); });
-    renderTurbo();
 
-    // حركة سلسة — الاتجاهات الصحيحة:
-    // ↑: يزيد LAT (dy+) ، ↓: يقلل LAT (dy-)
-    // →: يزيد LNG (dx+) ، ←: يقلل LNG (dx-)
+    let activePOI = null;   // الاسم الحالي المفتوح (إن وجد)
+    const NEAR = 150;       // عتبة المسافة بالمتر لفتح الفقاعة
+
+    function updatePOIPopup() {
+      let found = null;
+      for (const p of pois) {
+        if (distMeters(lat, lng, p.pos[0], p.pos[1]) <= NEAR) { found = p; break; }
+      }
+      if (found && activePOI !== found.name) {
+        activePOI = found.name;
+        player.bindPopup(found.msg, {
+          offset: [0, -28],
+          autoPan: false,
+          closeButton: false,
+          className: 'poi-popup'
+        }).openPopup();
+      } else if (!found && activePOI) {
+        player.closePopup();
+        activePOI = null;
+      }
+    }
+
+    // حركة سلسة (اتجاهات صحيحة: ↑ يزيد LAT، → يزيد LNG)
     let last = performance.now();
     function tick(now) {
       const dt = (now - last) / 1000; last = now;
       const speedMps = held.sprint ? SPRINT_SPEED_MPS : WALK_SPEED_MPS;
       const stepDeg  = (speedMps / METERS_PER_DEG_LAT) * dt;
 
-      // right/left = على محور X (lng) — up/down = على محور Y (lat)
       const vx = (held.right ? 1 : 0) - (held.left ? 1 : 0); // يمين موجب
       const vy = (held.up    ? 1 : 0) - (held.down ? 1 : 0); // فوق موجب
 
@@ -175,16 +224,16 @@
       const dy = vy * stepDeg;
 
       if (dx || dy) move(dx, dy);
+
+      // فحص القرب من المعالم وفتح/غلق الفقاعة
+      updatePOIPopup();
+
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
 
-    // نقاط مثال
-    [{"name":"Downtown Dubai","pos":[25.1972,55.2744]},
-     {"name":"Dubai Marina","pos":[25.08,55.139]},
-     {"name":"Deira","pos":[25.2711,55.3075]},
-     {"name":"Jumeirah","pos":[25.2028,55.2397]}]
-     .forEach(a=>L.circleMarker(a.pos,{radius:6}).addTo(map).bindPopup(a.name));
+    // تحديث أولي
+    updatePOIPopup();
   </script>
 </body>
 </html>
