@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=22"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=30"/>
 
   <style>
     html, body { height: 100%; margin: 0; }
@@ -70,7 +70,7 @@
   </style>
 </head>
 <body>
-  <div class="hud">الماوس للتحريك، عجلة الزوم، ↑↓←→ للتحرّك · ⚡ Turbo · 🧭 GPS</div>
+  <div class="hud">اسحب للتحريك · عجلة الماوس للزوم · ↑↓←→ للحركة · ⚡ Turbo · 🧭 GPS</div>
 
   <div id="map"></div>
 
@@ -85,17 +85,17 @@
     <div class="hidden"></div><div class="btn" data-k="ArrowDown">↓</div><div class="hidden"></div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=22"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=30"></script>
   <script>
     /* ===== Service Worker ===== */
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?ver=22').catch(console.warn);
+        navigator.serviceWorker.register('./service-worker.js?ver=30').catch(console.warn);
       });
     }
 
-    /* ===== مُعالج المسارات + كسر الكاش ===== */
-    const VER = 'v=22'; // زوّد الرقم لو غيّرت الصورة
+    /* ===== إعداد المسار الأساسي + كسر الكاش ===== */
+    const VER  = 'v=30'; // زوّد الرقم لو غيّرت الصورة
     const BASE = location.hostname.endsWith('github.io') ? '/dubai-map/' : '/';
     const ASSET = (p) => BASE + p + (p.includes('?') ? '&' : '?') + VER;
 
@@ -108,9 +108,9 @@
       attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
     }).addTo(map);
 
-    /* ===== Player icon (صورتك player.png) ===== */
+    /* ===== Player icon (player-new.png من الجذر) ===== */
     function avatarIcon(url){
-      const u = url || ASSET('player.png');
+      const u = url || ASSET('player-new.png'); // ← تأكد إن الصورة مرفوعة بهذا الاسم في الجذر
       return L.divIcon({
         html:`<div class="avatar-icon" style="background-image:url('${u}')"></div>`,
         className:'', iconSize:[44,44], iconAnchor:[22,22]
@@ -142,12 +142,14 @@
       if (e.key==='ArrowDown') held.down=true;
       if (e.key==='ArrowLeft') held.left=true;
       if (e.key==='ArrowRight') held.right=true;
+      if (e.key==='Shift'){ held.sprint=true; renderTurbo(); }
     });
     window.addEventListener('keyup', (e)=>{
       if (e.key==='ArrowUp') held.up=false;
       if (e.key==='ArrowDown') held.down=false;
       if (e.key==='ArrowLeft') held.left=false;
       if (e.key==='ArrowRight') held.right=false;
+      if (e.key==='Shift'){ held.sprint=false; renderTurbo(); }
     });
 
     const pad = document.getElementById('pad');
