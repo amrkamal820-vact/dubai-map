@@ -12,7 +12,7 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
   <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=14"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=15"/>
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
@@ -23,7 +23,7 @@
       font: 14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     }
 
-    /* Floating buttons */
+    /* أزرار طافية */
     #turboToggle{
       position:fixed; left:12px; top:12px; z-index:1002;
       border:0; border-radius:12px; padding:8px 12px; font-size:16px; font-weight:700;
@@ -38,7 +38,6 @@
     }
     #gpsBtn:active{ transform:scale(.96); }
 
-    /* profile & chat launchers */
     .fab {
       position: fixed; right: 12px; z-index: 1002; width: 56px; height: 56px;
       border-radius: 16px; border: 0; display: grid; place-items: center; color:#fff;
@@ -67,7 +66,7 @@
       background:#111827; color:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.35);
     }
 
-    /* DivIcon for avatar */
+    /* Avatar كأيقونة */
     .avatar-icon {
       width:44px; height:44px; border-radius:50%; overflow:hidden; border:2px solid #0ea5e9;
       box-shadow:0 2px 10px rgba(0,0,0,.25);
@@ -92,13 +91,19 @@
       background:#0b1220; border:1px solid #25324a; margin:4px 6px 0 0; }
     .chip b{font-weight:600}
     .chip button{ background:#ef4444; color:#fff; border:0; border-radius:10px; padding:2px 8px; }
-    .btnPri {
-      background:#22c55e; color:#06230f; border:0; border-radius:12px; padding:10px 14px; font-weight:700;
-    }
-    .btnSec {
-      background:#0b1220; color:#d1d5db; border:1px solid #25324a; border-radius:12px; padding:10px 14px; font-weight:600;
-    }
+    .btnPri { background:#22c55e; color:#06230f; border:0; border-radius:12px; padding:10px 14px; font-weight:700; }
+    .btnSec { background:#0b1220; color:#d1d5db; border:1px solid #25324a; border-radius:12px; padding:10px 14px; font-weight:600; }
     .title { font-size:16px; font-weight:800; margin:6px 0 10px; }
+
+    /* زر إغلاق البانلز */
+    .panel .closeBtn{
+      position:absolute; top:8px; left:8px;
+      width:34px; height:34px; border:0; border-radius:10px;
+      background:#0b1220; color:#fff; font-size:18px; line-height:1;
+      display:grid; place-items:center; cursor:pointer;
+      border:1px solid #25324a;
+    }
+    .panel .closeBtn:active{ transform:scale(.96); }
 
     /* Chat */
     .chatList { background:#0b1220; border:1px solid #25324a; border-radius:12px; padding:8px; max-height: 32vh; overflow:auto; }
@@ -122,7 +127,7 @@
 
   <div id="map"></div>
 
-  <!-- Floating buttons -->
+  <!-- أزرار -->
   <button id="turboToggle">⚡ Turbo OFF</button>
   <button id="gpsBtn" title="اذهب إلى موقعي">🧭</button>
   <button id="openProfile" class="fab" title="البروفايل">👤</button>
@@ -137,6 +142,7 @@
 
   <!-- PROFILE PANEL -->
   <div id="profilePanel" class="panel" aria-hidden="true">
+    <button id="closeProfile" class="closeBtn" title="إغلاق">×</button>
     <div class="title">👤 البروفايل & المقتنيات</div>
     <div class="row">
       <div class="field">
@@ -183,6 +189,7 @@
 
   <!-- CHAT PANEL -->
   <div id="chatPanel" class="panel" aria-hidden="true">
+    <button id="closeChat" class="closeBtn" title="إغلاق">×</button>
     <div class="title">💬 الشات بين اللاعبين (محليًا)</div>
     <div class="row">
       <div class="field">
@@ -203,31 +210,36 @@
     </div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=14"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=15"></script>
   <script>
-    // ===== Service Worker version =====
+    // ===== Service Worker =====
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?ver=14').then(r=>r.update?.()).catch(console.warn);
+        navigator.serviceWorker.register('./service-worker.js?ver=15').then(r=>r.update?.()).catch(console.warn);
       });
     }
 
-    // ===== Map setup =====
+    // ===== Map =====
     const dubai = [25.2048, 55.2708];
     const map = L.map('map', { zoomControl: true }).setView(dubai, 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
     }).addTo(map);
 
-    // ===== Player icon (avatar DivIcon if exists) =====
+    // ===== Helpers =====
     function avatarIcon(url){
       if (!url) return L.icon({ iconUrl: 'player.png', iconSize:[44,44], iconAnchor:[22,22] });
       return L.divIcon({ html:`<div class="avatar-icon" style="background-image:url('${url.replace(/'/g,"&#39;")}')"></div>`, className:'', iconSize:[44,44], iconAnchor:[22,22] });
     }
+    function distMeters(aLat,aLng,bLat,bLng){
+      const R=6371000,toRad=d=>d*Math.PI/180;
+      const dLat=toRad(bLat-aLat), dLng=toRad(bLng-aLng);
+      const s1=Math.sin(dLat/2), s2=Math.sin(dLng/2);
+      const A=s1*s1 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*s2*s2;
+      return 2*R*Math.asin(Math.min(1, Math.sqrt(A)));
+    }
 
-    let lat = dubai[0], lng = dubai[1], tLat = lat, tLng = lng;
-
-    // ===== Profiles store =====
+    // ===== Store =====
     const store = {
       get profiles(){ return JSON.parse(localStorage.getItem('profiles')||'[]'); },
       set profiles(v){ localStorage.setItem('profiles', JSON.stringify(v)); },
@@ -237,7 +249,7 @@
       set chats(v){ localStorage.setItem('chats', JSON.stringify(v)); }
     };
 
-    // Seed if empty
+    // Seed
     if (store.profiles.length === 0) {
       const id = 'p-' + Date.now();
       store.profiles = [{ id, name:'Player 1', bio:'Ready to explore Dubai!', photo:null, inventory:[] }];
@@ -249,10 +261,11 @@
       return arr.find(p=>p.id===store.currentId) || arr[0];
     }
 
-    // Marker (uses avatar if set)
+    // ===== Player Marker =====
+    let lat = dubai[0], lng = dubai[1], tLat = lat, tLng = lng;
     let player = L.marker([lat,lng], { draggable:false, icon: avatarIcon(currentProfile().photo) }).addTo(map);
 
-    // Restore last pos
+    // Restore position
     try {
       const saved = JSON.parse(localStorage.getItem('playerPos'));
       if (Array.isArray(saved)) { lat=saved[0]; lng=saved[1]; tLat=lat; tLng=lng; player.setLatLng(saved); map.setView(saved); }
@@ -281,6 +294,7 @@
       if (e.key==='ArrowLeft') held.left=true;
       if (e.key==='ArrowRight') held.right=true;
       if (e.key==='Shift'){ held.sprint=true; renderTurbo(); }
+      if (e.key==='Escape') closePanels();
     });
     window.addEventListener('keyup', (e)=>{
       if (e.key==='ArrowUp') held.up=false;
@@ -297,14 +311,10 @@
     pad.addEventListener('pointerup',   e=>{ const t=e.target.closest('.btn'); if(!t) return; setHeldFromTarget(t,false); });
     pad.addEventListener('pointercancel',()=>{ held={up:false,down:false,left:false,right:false,sprint:held.sprint}; });
 
-    // POIs for proximity popups
-    function distMeters(aLat,aLng,bLat,bLng){ const R=6371000,toRad=d=>d*Math.PI/180; const dLat=toRad(bLat-aLat), dLng=toRad(bLng-aLng);
-      const s1=Math.sin(dLat/2), s2=Math.sin(dLng/2); const A=s1*s1 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*s2*s2; return 2*R*Math.asin(Math.min(1,Math.sqrt(A))); }
+    // Proximity popup
     const NEAR=250; let activePOI=null, popupTimer=null; const cooldown={};
     function playDing(){ try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(),g=ctx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=0.001;
       o.connect(g).connect(ctx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.2,ctx.currentTime+0.02); g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.18); o.stop(ctx.currentTime+0.2);}catch(e){} }
-    function openPOI(p){ activePOI=p.name; player.bindPopup(p.msg,{offset:[0,-28],autoPan:false,closeButton:false,className:'poi-popup'}).openPopup(); playDing();
-      if(popupTimer) clearTimeout(popupTimer); popupTimer=setTimeout(()=>{ player.closePopup(); activePOI=null; cooldown[p.name]=performance.now()+3000; },4000); }
     const corePOIs = [
       { name:'Dubai Mall', pos:[25.1975,55.2790], msg:'أنت بالقرب من <b>Dubai Mall</b> 🛍️' },
       { name:'Burj Khalifa', pos:[25.1972,55.2744], msg:'أنت بالقرب من <b>Burj Khalifa</b> 🗼' },
@@ -312,6 +322,13 @@
       { name:'DXB T3', pos:[25.2487,55.3526], msg:'أنت بالقرب من <b>Dubai Int’l Airport – T3</b> ✈️' },
       { name:'Deira City Ctr', pos:[25.2532,55.3349], msg:'أنت بالقرب من <b>Deira City Centre</b> 🛒' },
     ];
+    function openPOI(p){
+      activePOI=p.name;
+      player.bindPopup(p.msg,{offset:[0,-28],autoPan:false,closeButton:false,className:'poi-popup'}).openPopup();
+      playDing();
+      if(popupTimer) clearTimeout(popupTimer);
+      popupTimer=setTimeout(()=>{ player.closePopup(); activePOI=null; cooldown[p.name]=performance.now()+3000; },4000);
+    }
     function updatePOIPopup(){
       let found=null; for(const p of corePOIs){ if(distMeters(lat,lng,p.pos[0],p.pos[1])<=NEAR){ found=p; break; } }
       const now=performance.now();
@@ -333,7 +350,7 @@
       }, err=>{ btn.disabled=false; btn.style.opacity=1; alert('تعذّر تحديد الموقع: '+(err.message||err.code)); }, {enableHighAccuracy:true, timeout:10000, maximumAge:300000});
     });
 
-    // Game loop
+    // Loop
     let last=performance.now();
     function tick(now){
       const dt=(now-last)/1000; last=now;
@@ -349,7 +366,7 @@
 
       const p=[lat,lng];
       player.setLatLng(p);
-      map.panTo(p, PAN_OPTS);
+      map.panTo(p, { ...PAN_OPTS });
 
       savePos(dt);
       updatePOIPopup();
@@ -358,16 +375,26 @@
     }
     requestAnimationFrame(tick);
 
-    // ===== Profile Panel logic =====
+    // ===== Profile Panel =====
     const profilePanel = document.getElementById('profilePanel');
     const openProfileBtn = document.getElementById('openProfile');
-    openProfileBtn.addEventListener('click', ()=> profilePanel.classList.toggle('open') );
-
     const playerSelect = document.getElementById('playerSelect');
     const pName = document.getElementById('pName');
     const pBio  = document.getElementById('pBio');
     const pPhoto= document.getElementById('pPhoto');
     const invList = document.getElementById('invList');
+
+    function openPanel(panel){ panel.classList.add('open'); }
+    function closePanel(panel){ panel.classList.remove('open'); }
+    function closePanels(){ closePanel(profilePanel); closePanel(chatPanel); }
+
+    document.getElementById('closeProfile').addEventListener('click', ()=> closePanel(profilePanel));
+
+    openProfileBtn.addEventListener('click', ()=>{
+      const isOpen = profilePanel.classList.contains('open');
+      closePanels();
+      if(!isOpen) openPanel(profilePanel);
+    });
 
     function refreshPlayerSelect(){
       const list = store.profiles;
@@ -387,7 +414,6 @@
       pName.value = p.name || '';
       pBio.value  = p.bio  || '';
       renderInventory();
-      // تحديث أيقونة اللاعب
       player.setIcon(avatarIcon(p.photo));
     }
 
@@ -417,7 +443,7 @@
       p.name = pName.value.trim() || 'Player';
       p.bio  = pBio.value.trim();
       store.profiles = arr;
-      refreshPlayerSelect(); // لتحديث الاسم في القائمة
+      refreshPlayerSelect();
     });
 
     pPhoto.addEventListener('change', (e)=>{
@@ -467,12 +493,16 @@
       renderInventory();
     });
 
-    // Init UI
     refreshPlayerSelect();
 
-    // ===== Chat Panel logic =====
+    // ===== Chat Panel =====
     const chatPanel = document.getElementById('chatPanel');
-    document.getElementById('openChat').addEventListener('click', ()=>{ chatPanel.classList.toggle('open'); refreshChatSelectors(); renderChat(); });
+    document.getElementById('closeChat').addEventListener('click', ()=> closePanel(chatPanel));
+    document.getElementById('openChat').addEventListener('click', ()=>{
+      const isOpen = chatPanel.classList.contains('open');
+      closePanels();
+      if(!isOpen) openPanel(chatPanel);
+    });
 
     const chatFrom = document.getElementById('chatFrom');
     const chatTo   = document.getElementById('chatTo');
@@ -487,7 +517,6 @@
         const o2=document.createElement('option'); o2.value=p.id; o2.textContent=p.name||'لاعب'; chatTo.appendChild(o2);
       });
       chatFrom.value = store.currentId || list[0].id;
-      // افتراضيًا ابعت لغير نفسك
       const defTo = list.find(p=>p.id!==chatFrom.value) || list[0];
       chatTo.value = defTo.id;
     }
@@ -510,8 +539,15 @@
       chatList.scrollTop = chatList.scrollHeight;
     }
 
-    chatFrom.addEventListener('change', ()=>{ renderChat(); });
-    chatTo  .addEventListener('change', ()=>{ renderChat(); });
+    function reopenChatIfNeeded(){
+      if (chatPanel.classList.contains('open')) {
+        refreshChatSelectors();
+        renderChat();
+      }
+    }
+
+    chatFrom.addEventListener('change', renderChat);
+    chatTo  .addEventListener('change', renderChat);
 
     document.getElementById('sendMsg').addEventListener('click', ()=>{
       const text = chatMsg.value.trim();
@@ -523,8 +559,14 @@
       chatMsg.value='';
       renderChat();
     });
-
     chatMsg.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); document.getElementById('sendMsg').click(); } });
+
+    // ===== إغلاق تلقائي عند لمس الخريطة/السحب + خارج البانلز =====
+    map.on('click', closePanels);
+    map.on('dragstart', closePanels);
+    document.getElementById('map').addEventListener('pointerdown', closePanels);
+    profilePanel.addEventListener('pointerdown', (e)=> e.stopPropagation());
+    chatPanel   .addEventListener('pointerdown', (e)=> e.stopPropagation());
   </script>
 </body>
 </html>
