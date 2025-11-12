@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Dubai Map – PWA</title>
 
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=5"/>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=6"/>
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
@@ -42,7 +44,7 @@
   </style>
 </head>
 <body>
-  <div class="hud">↑↓←→ للتحرّك · كبّر/صغّر باللمس · ⚡ للجري السريع جدًا</div>
+  <div class="hud">↑↓←→ للتحرّك · كبّر/صغّر باللمس · ⚡ للجري</div>
   <div id="map"></div>
   <button id="turboFloat">⚡ Turbo</button>
 
@@ -60,12 +62,12 @@
     <div class="hidden"></div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=5"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=6"></script>
   <script>
-    // Service worker مع رقم إصدار جديد لإجبار التحديث
+    // Service worker (أجبرت نسخة جديدة)
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?ver=5').then(r => r.update?.()).catch(console.warn);
+        navigator.serviceWorker.register('./service-worker.js?ver=6').then(r => r.update?.()).catch(console.warn);
       });
     }
 
@@ -80,7 +82,7 @@
     const playerIcon = L.icon({ iconUrl: 'player.png', iconSize: [44,44], iconAnchor: [22,22] });
     const player = L.marker(dubai, { draggable:false, icon: playerIcon }).addTo(map);
 
-    // الحالة
+    // موقع محفوظ
     let lat = dubai[0], lng = dubai[1];
     try {
       const saved = JSON.parse(localStorage.getItem('playerPos'));
@@ -88,23 +90,26 @@
     } catch {}
 
     function move(dx, dy) {
-      lat += dy; lng += dx;         // dx → شرق/غرب (lng) ، dy → شمال/جنوب (lat)
+      lat += dy;        // dy يؤثر في LAT (فوق/تحت)
+      lng += dx;        // dx يؤثر في LNG (يمين/شمال)
       const p = [lat, lng];
       player.setLatLng(p);
       map.panTo(p, { animate: false });
       localStorage.setItem('playerPos', JSON.stringify(p));
     }
 
-    // السرعات (Turbo أسرع)
-    const WALK_SPEED_MPS   = 40;   // مشي سريع
-    const SPRINT_SPEED_MPS = 140;  // Turbo أسرع بوضوح
+    // السرعات
+    const WALK_SPEED_MPS   = 40;    // مشي
+    const SPRINT_SPEED_MPS = 160;   // Turbo أسرع
     const METERS_PER_DEG_LAT = 111000;
 
     let held = { up:false, down:false, left:false, right:false, sprint:false };
 
-    // اتجاهات مضبوطة: يمين = يزيد lng، يسار = يقلل lng
-    const INVERT_VERTICAL = true;      // خليه زي ما كان عندك شغال كويس
-    const INVERT_HORIZONTAL = false;   // ← أصلحنا العكس هنا
+    // ضبط الاتجاهات الصحيحة:
+    // ↑ يزيد LAT (شمال) — لذا dy += +stepDeg
+    // → يزيد LNG (شرق)  — لذا dx += +stepDeg
+    const INVERT_VERTICAL   = false; // كان سبب العكس لفوق/تحت — لغيناه
+    const INVERT_HORIZONTAL = false; // كان سبب العكس ليمين/شمال — لغيناه
 
     // كيبورد
     window.addEventListener('keydown', (e) => {
@@ -155,10 +160,10 @@
       const stepDeg  = (speedMps / METERS_PER_DEG_LAT) * dt;
 
       let dx = 0, dy = 0;
-      if (held.up)    dy += (INVERT_VERTICAL   ? -stepDeg : +stepDeg); // فوق يقلل lat
+      if (held.up)    dy += (INVERT_VERTICAL   ? -stepDeg : +stepDeg); // ↑ يزود LAT
       if (held.down)  dy += (INVERT_VERTICAL   ? +stepDeg : -stepDeg);
-      if (held.left)  dx += (INVERT_HORIZONTAL ? +stepDeg : -stepDeg); // يسار يقلل lng
-      if (held.right) dx += (INVERT_HORIZONTAL ? -stepDeg : +stepDeg); // يمين يزيد lng
+      if (held.left)  dx += (INVERT_HORIZONTAL ? +stepDeg : -stepDeg); // ← يقلل LNG
+      if (held.right) dx += (INVERT_HORIZONTAL ? -stepDeg : +stepDeg); // → يزود LNG
 
       if (dx || dy) move(dx, dy);
       requestAnimationFrame(tick);
