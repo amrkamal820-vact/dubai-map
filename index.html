@@ -5,12 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Dubai Map – PWA</title>
 
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=16"/>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=22"/>
+
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
@@ -19,9 +22,10 @@
       position: fixed; right: 10px; top: 10px; z-index: 1000;
       background: rgba(0,0,0,.55); color: #fff; padding: 8px 10px; border-radius: 10px;
       font: 14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-      pointer-events: none; /* ما تمنع سحب الخريطة */
+      pointer-events: none;
     }
 
+    /* أزرار */
     #turboToggle{
       position:fixed; left:12px; top:12px; z-index:1002;
       border:0; border-radius:12px; padding:8px 12px; font-size:16px; font-weight:700;
@@ -36,60 +40,43 @@
     }
     #gpsBtn:active{ transform:scale(.96); }
 
-    .fab {
-      position: fixed; right: 12px; z-index: 1002; width: 56px; height: 56px;
-      border-radius: 16px; border: 0; display: grid; place-items: center; color:#fff;
-      background: #111827cc; backdrop-filter: blur(6px); font-size: 22px; user-select: none;
-    }
-    #openProfile { bottom: 80px; }
-    #openChat    { bottom: 12px; }
-
-    /* d-pad: نخلي الحاوية شفافة للماوس علشان السحب يشتغل على الخريطة */
+    /* d-pad */
     .pad {
-      position: fixed; right: 84px; bottom: 12px; z-index: 1001;
+      position: fixed; right: 12px; bottom: 12px; z-index: 1001;
       display: grid; grid-template-columns: 56px 56px 56px; grid-template-rows: 56px 56px 56px;
       gap: 6px; user-select: none;
-      pointer-events: none; /* المهم */
+      pointer-events: none; /* لا تمنع سحب الخريطة */
     }
     .btn {
       background: rgba(0,0,0,.45); color:#fff; border-radius:14px;
       display:flex; align-items:center; justify-content:center; font-size:18px; backdrop-filter: blur(6px);
-      touch-action:none;
-      pointer-events: auto; /* الأزرار نفسها لسه بتاخد اللمس */
+      touch-action:none; pointer-events: auto;
     }
     .btn:active{ transform: scale(.97); }
     .hidden{ visibility:hidden; }
 
-    .poi-popup .leaflet-popup-content{ margin:8px 10px; font-size:14px; line-height:1.5; direction:rtl; }
-    .poi-popup .leaflet-popup-tip, .poi-popup .leaflet-popup-content-wrapper{
-      background:#111827; color:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.35);
-    }
-
+    /* شكل الأفاتار الدائري */
     .avatar-icon {
-      width:44px; height:44px; border-radius:50%; overflow:hidden; border:2px solid #0ea5e9;
+      width:44px; height:44px; border-radius:50%; overflow:hidden; border:2px solid #ffffffcc;
       box-shadow:0 2px 10px rgba(0,0,0,.25);
       background:#fff center/cover no-repeat;
     }
 
-    /* Panels (مختصر — نفس اللي عندك مسبقًا) */
-    .panel { position: fixed; inset: auto 0 0 0; top: 30%; background: rgba(17,24,39,.98); color:#fff;
-      border-radius: 16px 16px 0 0; z-index: 1003; transform: translateY(100%); transition: transform .25s ease;
-      padding:14px; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; max-height: 70%; overflow:auto; }
-    .panel.open { transform: translateY(0); }
-    .panel .closeBtn{ position:absolute; top:8px; left:8px; width:34px; height:34px; border:0; border-radius:10px;
-      background:#0b1220; color:#fff; font-size:18px; display:grid; place-items:center; border:1px solid #25324a; }
+    /* Popup قرب المعالم */
+    .poi-popup .leaflet-popup-content{ margin:8px 10px; font-size:14px; line-height:1.5; direction:rtl; }
+    .poi-popup .leaflet-popup-tip, .poi-popup .leaflet-popup-content-wrapper{
+      background:#111827; color:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.35);
+    }
   </style>
 </head>
 <body>
-  <div class="hud">اسحب الماوس للتحريك · عجلة الماوس للتكبير · ↑↓←→ للتحرّك · ⚡ Turbo · 🧭 GPS</div>
+  <div class="hud">الماوس للتحريك، عجلة الزوم، ↑↓←→ للتحرّك · ⚡ Turbo · 🧭 GPS</div>
 
   <div id="map"></div>
 
-  <!-- أزرار ثابتة -->
+  <!-- أزرار أعلى/أسفل -->
   <button id="turboToggle">⚡ Turbo OFF</button>
   <button id="gpsBtn" title="اذهب إلى موقعي">🧭</button>
-  <button id="openProfile" class="fab" title="البروفايل">👤</button>
-  <button id="openChat" class="fab" title="الشات">💬</button>
 
   <!-- d-pad -->
   <div class="pad" id="pad">
@@ -98,102 +85,53 @@
     <div class="hidden"></div><div class="btn" data-k="ArrowDown">↓</div><div class="hidden"></div>
   </div>
 
-  <!-- Panels (مختصرة – نفس اللي بعتّهولك قبل كده) -->
-  <div id="profilePanel" class="panel" aria-hidden="true">
-    <button id="closeProfile" class="closeBtn" title="إغلاق">×</button>
-    <div class="title">👤 البروفايل & المقتنيات</div>
-    <div class="row">
-      <div class="field"><label>اللاعب الحالي</label><select id="playerSelect"></select></div>
-      <button id="addPlayer" class="btnSec">➕ لاعب جديد</button>
-      <button id="delPlayer" class="btnSec">🗑️ حذف اللاعب</button>
-    </div>
-    <div class="row">
-      <div class="field" style="min-width:220px"><label>الاسم</label><input type="text" id="pName" placeholder="اسم اللاعب"></div>
-      <div class="field" style="min-width:220px"><label>النبذة</label><input type="text" id="pBio" placeholder="نبذة قصيرة"></div>
-    </div>
-    <div class="row">
-      <div class="field"><label>الصورة (Avatar)</label><input type="file" id="pPhoto" accept="image/*"></div>
-      <button id="saveProfile" class="btnPri">💾 حفظ</button>
-    </div>
-    <div class="title">🧺 المقتنيات</div>
-    <div class="row">
-      <div class="field"><label>أيقونة</label><input type="text" id="invEmoji" placeholder="🚗 / 📱" maxlength="3" style="width:100px"></div>
-      <div class="field"><label>الاسم</label><input type="text" id="invName" placeholder="عربية / موبايل"></div>
-      <button id="addItem" class="btnSec">➕ إضافة</button>
-    </div>
-    <div id="invList" class="row"></div>
-  </div>
-
-  <div id="chatPanel" class="panel" aria-hidden="true">
-    <button id="closeChat" class="closeBtn" title="إغلاق">×</button>
-    <div class="title">💬 الشات</div>
-    <div class="row">
-      <div class="field"><label>أنا:</label><select id="chatFrom"></select></div>
-      <div class="field"><label>إلى:</label><select id="chatTo"></select></div>
-    </div>
-    <div id="chatList" class="chatList"></div>
-    <div class="chatInput"><input id="chatMsg" type="text" placeholder="اكتب رسالتك..."><button id="sendMsg" class="btnPri">إرسال</button></div>
-  </div>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=16"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=22"></script>
   <script>
     /* ===== Service Worker ===== */
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?ver=16').catch(console.warn);
+        navigator.serviceWorker.register('./service-worker.js?ver=22').catch(console.warn);
       });
     }
+
+    /* ===== مُعالج المسارات + كسر الكاش ===== */
+    const VER = 'v=22'; // زوّد الرقم لو غيّرت الصورة
+    const BASE = location.hostname.endsWith('github.io') ? '/dubai-map/' : '/';
+    const ASSET = (p) => BASE + p + (p.includes('?') ? '&' : '?') + VER;
 
     /* ===== Map ===== */
     const dubai = [25.2048, 55.2708];
     const map = L.map('map', {
-      zoomControl: true,
-      dragging: true,
-      scrollWheelZoom: true,   // عجلة الماوس
-      tap: false               // يمنع تعارض على بعض الهواتف
+      zoomControl: true, dragging: true, scrollWheelZoom: true, tap: false
     }).setView(dubai, 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
     }).addTo(map);
-    map.dragging.enable(); map.scrollWheelZoom.enable();
 
-    /* ===== Store (مختصر) ===== */
-    const store = {
-      get profiles(){ return JSON.parse(localStorage.getItem('profiles')||'[]'); },
-      set profiles(v){ localStorage.setItem('profiles', JSON.stringify(v)); },
-      get currentId(){ return localStorage.getItem('currentPlayerId'); },
-      set currentId(v){ localStorage.setItem('currentPlayerId', v); },
-      get chats(){ return JSON.parse(localStorage.getItem('chats')||'[]'); },
-      set chats(v){ localStorage.setItem('chats', JSON.stringify(v)); }
-    };
-    if (store.profiles.length === 0) {
-      const id = 'p-' + Date.now();
-      /* مهم: الافتراضي صورة avatar.jpg */
-      store.profiles = [{ id, name:'Player 1', bio:'Ready!', photo:'avatar.jpg', inventory:[] }];
-      store.currentId = id;
-    } else {
-      // لو مفيش صورة افتراضية، استخدم avatar.jpg
-      const arr = store.profiles;
-      arr.forEach(p=>{ if(!p.photo) p.photo='avatar.jpg'; });
-      store.profiles = arr;
-    }
-    function currentProfile(){ const arr=store.profiles; return arr.find(p=>p.id===store.currentId) || arr[0]; }
-
-    /* ===== Player marker (باستخدام صورتك) ===== */
+    /* ===== Player icon (صورتك player.png) ===== */
     function avatarIcon(url){
-      return L.divIcon({ html:`<div class="avatar-icon" style="background-image:url('${url.replace(/'/g,"&#39;")}')"></div>`, className:'', iconSize:[44,44], iconAnchor:[22,22] });
+      const u = url || ASSET('player.png');
+      return L.divIcon({
+        html:`<div class="avatar-icon" style="background-image:url('${u}')"></div>`,
+        className:'', iconSize:[44,44], iconAnchor:[22,22]
+      });
     }
-    let lat=dubai[0], lng=dubai[1], tLat=lat, tLng=lng;
-    let player = L.marker([lat,lng], { icon: avatarIcon(currentProfile().photo) }).addTo(map);
 
-    try{ const saved=JSON.parse(localStorage.getItem('playerPos')); if(Array.isArray(saved)){ lat=saved[0]; lng=saved[1]; tLat=lat; tLng=lng; player.setLatLng(saved); map.setView(saved);} }catch{}
+    /* ===== حالة اللاعب والحركة السلسة ===== */
+    let lat = dubai[0], lng = dubai[1], tLat = lat, tLng = lng;
+    const SMOOTH = 0.18;
+    const WALK_SPEED_MPS = 40, SPRINT_SPEED_MPS = 180, METERS_PER_DEG_LAT = 111000;
+    const PAN_OPTS = { animate:true, duration:0.15, easeLinearity:0.25 };
 
+    let player = L.marker([lat,lng], { icon: avatarIcon() }).addTo(map);
+
+    // استرجاع آخر موقع
+    try { const s=JSON.parse(localStorage.getItem('playerPos')); if(Array.isArray(s)){ lat=s[0]; lng=s[1]; tLat=lat; tLng=lng; player.setLatLng(s); map.setView(s);} } catch {}
     let saveAccum=0; function savePos(dt){ saveAccum+=dt; if(saveAccum>=0.5){ localStorage.setItem('playerPos', JSON.stringify([lat,lng])); saveAccum=0; } }
-    function nudgeTarget(dx,dy){ tLng+=dx; tLat+=dy; }
-    const WALK_SPEED_MPS=40, SPRINT_SPEED_MPS=180, METERS_PER_DEG_LAT=111000;
-    const SMOOTH=0.18, PAN_OPTS={ animate:true, duration:0.15, easeLinearity:0.25 };
-    let held={up:false,down:false,left:false,right:false,sprint:false};
 
+    function nudgeTarget(dx,dy){ tLng += dx; tLat += dy; }
+
+    let held = { up:false, down:false, left:false, right:false, sprint:false };
     const turboBtn = document.getElementById('turboToggle');
     function renderTurbo(){ turboBtn.textContent = held.sprint ? '⚡ Turbo ON' : '⚡ Turbo OFF';
       turboBtn.style.background = held.sprint ? 'rgba(255,80,0,.95)' : 'rgba(255,213,0,.95)'; }
@@ -204,55 +142,20 @@
       if (e.key==='ArrowDown') held.down=true;
       if (e.key==='ArrowLeft') held.left=true;
       if (e.key==='ArrowRight') held.right=true;
-      if (e.key==='Shift'){ held.sprint=true; renderTurbo(); }
-      if (e.key==='Escape') closePanels();
     });
     window.addEventListener('keyup', (e)=>{
       if (e.key==='ArrowUp') held.up=false;
       if (e.key==='ArrowDown') held.down=false;
       if (e.key==='ArrowLeft') held.left=false;
       if (e.key==='ArrowRight') held.right=false;
-      if (e.key==='Shift'){ held.sprint=false; renderTurbo(); }
     });
 
-    const pad=document.getElementById('pad');
+    const pad = document.getElementById('pad');
     function setHeldFromTarget(t,val){ const k=t.getAttribute('data-k'); if(!k)return;
       if(k==='ArrowUp')held.up=val; if(k==='ArrowDown')held.down=val; if(k==='ArrowLeft')held.left=val; if(k==='ArrowRight')held.right=val; }
     pad.addEventListener('pointerdown',e=>{ const t=e.target.closest('.btn'); if(!t)return; setHeldFromTarget(t,true); t.setPointerCapture?.(e.pointerId); });
     pad.addEventListener('pointerup',e=>{ const t=e.target.closest('.btn'); if(!t)return; setHeldFromTarget(t,false); });
     pad.addEventListener('pointercancel',()=>{ held={up:false,down:false,left:false,right:false,sprint:held.sprint}; });
-
-    /* ===== Landmarks (المعالم الأساسية) ===== */
-    function ico(emoji){ return L.divIcon({ html:`<div class="avatar-icon" style="border-color:#222;background:#fff;font-size:20px;display:grid;place-items:center;"><span style="filter:grayscale(0);">${emoji}</span></div>`, className:'', iconSize:[44,44], iconAnchor:[22,22] }); }
-    const gLandmarks = L.layerGroup().addTo(map);
-    const landmarks = [
-      {name:'Burj Khalifa',        pos:[25.1972,55.2744], emoji:'🗼', info:'برج خليفة'},
-      {name:'Burj Al Arab',        pos:[25.1412,55.1852], emoji:'🏨', info:'برج العرب'},
-      {name:'Museum of the Future',pos:[25.2269,55.2865], emoji:'🏛️', info:'متحف المستقبل'},
-      {name:'Dubai Frame',         pos:[25.2343,55.3001], emoji:'🖼️', info:'برواز دبي'},
-      {name:'Palm Jumeirah',       pos:[25.1122,55.1389], emoji:'🌴', info:'نخلة جميرا'}
-    ];
-    landmarks.forEach(p=>{
-      const m=L.marker(p.pos,{icon:ico(p.emoji)}).addTo(gLandmarks);
-      m.bindPopup(`<b>${p.name}</b><br>${p.info||''}`);
-    });
-    L.control.layers(null, { "🏛️ Landmarks": gLandmarks }, { collapsed:true, position:'topright' }).addTo(map);
-
-    /* ===== قرب المعالم (فقاعة فوق اللاعب) ===== */
-    function distMeters(aLat,aLng,bLat,bLng){ const R=6371000,toRad=d=>d*Math.PI/180; const dLat=toRad(bLat-aLat), dLng=toRad(bLng-aLng);
-      const s1=Math.sin(dLat/2), s2=Math.sin(dLng/2); const A=s1*s1 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*s2*s2; return 2*R*Math.asin(Math.min(1,Math.sqrt(A))); }
-    const NEAR=250; let activePOI=null, popupTimer=null; const cooldown={};
-    function ding(){ try{ const c=new (window.AudioContext||window.webkitAudioContext)(); const o=c.createOscillator(),g=c.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=0.001; o.connect(g).connect(c.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.2,c.currentTime+0.02); g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+0.18); o.stop(c.currentTime+0.2);}catch(e){} }
-    const corePOIs = [
-      { name:'Dubai Mall', pos:[25.1975,55.2790], msg:'أنت بالقرب من <b>Dubai Mall</b> 🛍️' },
-      { name:'Burj Khalifa', pos:[25.1972,55.2744], msg:'أنت بالقرب من <b>Burj Khalifa</b> 🗼' },
-      { name:'Burj Al Arab', pos:[25.1412,55.1852], msg:'أنت بالقرب من <b>Burj Al Arab</b> 🏨' },
-    ];
-    function openPOI(p){ activePOI=p.name; player.bindPopup(p.msg,{offset:[0,-28],autoPan:false,closeButton:false,className:'poi-popup'}).openPopup(); ding();
-      if(popupTimer)clearTimeout(popupTimer); popupTimer=setTimeout(()=>{ player.closePopup(); activePOI=null; cooldown[p.name]=performance.now()+3000; },4000); }
-    function updatePOIPopup(){ let found=null; for(const p of corePOIs){ if(distMeters(lat,lng,p.pos[0],p.pos[1])<=NEAR){ found=p; break; } }
-      const now=performance.now(); if(found){ const cd=cooldown[found.name]||0; if(!activePOI && now>cd) openPOI(found); }
-      else{ if(activePOI){ player.closePopup(); activePOI=null; } if(popupTimer){ clearTimeout(popupTimer); popupTimer=null; } } }
 
     /* ===== GPS ===== */
     document.getElementById('gpsBtn').addEventListener('click', ()=>{
@@ -268,7 +171,37 @@
       }, err=>{ btn.disabled=false; btn.style.opacity=1; alert('تعذّر تحديد الموقع: '+(err.message||err.code)); }, {enableHighAccuracy:true, timeout:10000, maximumAge:300000});
     });
 
-    /* ===== Game loop (smooth easing) ===== */
+    /* ===== معالم أساسية ===== */
+    function ico(emoji){ return L.divIcon({ html:`<div class="avatar-icon" style="border-color:#222;background:#fff;font-size:20px;display:grid;place-items:center;"><span>${emoji}</span></div>`, className:'', iconSize:[44,44], iconAnchor:[22,22] }); }
+    const gLandmarks = L.layerGroup().addTo(map);
+    [
+      {name:'Burj Khalifa',        pos:[25.1972,55.2744], emoji:'🗼'},
+      {name:'Burj Al Arab',        pos:[25.1412,55.1852], emoji:'🏨'},
+      {name:'Museum of the Future',pos:[25.2269,55.2865], emoji:'🏛️'},
+      {name:'Dubai Frame',         pos:[25.2343,55.3001], emoji:'🖼️'},
+      {name:'Palm Jumeirah',       pos:[25.1122,55.1389], emoji:'🌴'}
+    ].forEach(p=>{
+      L.marker(p.pos,{icon:ico(p.emoji)}).addTo(gLandmarks).bindPopup(`<b>${p.name}</b>`);
+    });
+    L.control.layers(null, { "🏛️ Landmarks": gLandmarks }, { collapsed:true, position:'topright' }).addTo(map);
+
+    /* ===== فقاعة القرب من المعالم (250م) ===== */
+    function distMeters(aLat,aLng,bLat,bLng){ const R=6371000,toRad=d=>d*Math.PI/180; const dLat=toRad(bLat-aLat), dLng=toRad(bLng-aLng);
+      const s1=Math.sin(dLat/2), s2=Math.sin(dLng/2); const A=s1*s1 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*s2*s2; return 2*R*Math.asin(Math.min(1,Math.sqrt(A))); }
+    const NEAR=250; let activePOI=null, popupTimer=null; const cooldown={};
+    function ding(){ try{ const c=new (window.AudioContext||window.webkitAudioContext)(); const o=c.createOscillator(),g=c.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=0.001; o.connect(g).connect(c.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.2,c.currentTime+0.02); g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+0.18); o.stop(c.currentTime+0.2);}catch(e){} }
+    const corePOIs = [
+      { name:'Dubai Mall', pos:[25.1975,55.2790], msg:'أنت بالقرب من <b>Dubai Mall</b> 🛍️' },
+      { name:'Burj Khalifa', pos:[25.1972,55.2744], msg:'أنت بالقرب من <b>Burj Khalifa</b> 🗼' },
+      { name:'Burj Al Arab', pos:[25.1412,55.1852], msg:'أنت بالقرب من <b>Burj Al Arab</b> 🏨' },
+    ];
+    function openPOI(p){ activePOI=p.name; player.bindPopup(p.msg,{offset:[0,-28],autoPan:false,closeButton:false,className:'poi-popup'}).openPopup(); ding();
+      if(popupTimer)clearTimeout(popupTimer); popupTimer=setTimeout(()=>{ player.closePopup(); activePOI=null; cooldown[p.name]=performance.now()+3000; },4000); }
+    function updatePOIPopup(){ let found=null; for(const p of corePOIs){ if(distMeters(lat,lng,p.pos[0],p.pos[1])<=NEAR){ found=p; break; } }
+      const now=performance.now(); if(found){ const cd=cooldown[found.name]||0; if(!activePOI && now>cd) openPOI(found); }
+      else{ if(activePOI){ player.closePopup(); activePOI=null; } if(popupTimer){ clearTimeout(popupTimer); popupTimer=null; } } }
+
+    /* ===== الحلقة الرئيسية (حركة سلسة) ===== */
     let last=performance.now();
     function tick(now){
       const dt=(now-last)/1000; last=now;
@@ -277,52 +210,19 @@
       const vx=(held.right?1:0)-(held.left?1:0);
       const vy=(held.up?1:0)-(held.down?1:0);
       if(vx||vy) nudgeTarget(vx*stepDeg, vy*stepDeg);
-      const dLat=tLat-lat, dLng=tLng-lng; lat+=dLat*SMOOTH; lng+=dLng*SMOOTH;
-      const p=[lat,lng]; player.setLatLng(p); map.panTo(p, PAN_OPTS);
-      savePos(dt); updatePOIPopup(); requestAnimationFrame(tick);
+
+      const dLat=tLat-lat, dLng=tLng-lng;
+      lat+=dLat*SMOOTH; lng+=dLng*SMOOTH;
+
+      const p=[lat,lng];
+      player.setLatLng(p);
+      map.panTo(p, PAN_OPTS);
+
+      savePos(dt);
+      updatePOIPopup();
+      requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
-
-    /* ===== Panels & إغلاق تلقائي ===== */
-    const profilePanel=document.getElementById('profilePanel');
-    const chatPanel=document.getElementById('chatPanel');
-    function openPanel(p){ p.classList.add('open'); }
-    function closePanel(p){ p.classList.remove('open'); }
-    function closePanels(){ closePanel(profilePanel); closePanel(chatPanel); }
-    document.getElementById('closeProfile').addEventListener('click', ()=>closePanel(profilePanel));
-    document.getElementById('closeChat').addEventListener('click', ()=>closePanel(chatPanel));
-    document.getElementById('openProfile').addEventListener('click', ()=>{ const o=profilePanel.classList.contains('open'); closePanels(); if(!o) openPanel(profilePanel); });
-    document.getElementById('openChat').addEventListener('click', ()=>{ const o=chatPanel.classList.contains('open'); closePanels(); if(!o) openPanel(chatPanel); });
-    map.on('click', closePanels); map.on('dragstart', closePanels);
-    document.getElementById('map').addEventListener('pointerdown', closePanels);
-
-    /* ===== باقي أكواد البروفايل/الشات نفسها (مختصرة هنا) ===== */
-    const playerSelect=document.getElementById('playerSelect');
-    const pName=document.getElementById('pName'); const pBio=document.getElementById('pBio'); const pPhoto=document.getElementById('pPhoto');
-    const invList=document.getElementById('invList');
-    function refreshPlayerSelect(){ const list=store.profiles; playerSelect.innerHTML=''; list.forEach(p=>{const o=document.createElement('option'); o.value=p.id; o.textContent=p.name||'لاعب'; playerSelect.appendChild(o);});
-      if(!store.currentId||!list.find(p=>p.id===store.currentId)) store.currentId=list[0].id; playerSelect.value=store.currentId; loadCurrentProfile(); }
-    function loadCurrentProfile(){ const p=currentProfile(); pName.value=p.name||''; pBio.value=p.bio||''; renderInventory(); player.setIcon(avatarIcon(p.photo||'avatar.jpg')); }
-    playerSelect.addEventListener('change', ()=>{ store.currentId=playerSelect.value; loadCurrentProfile(); });
-    document.getElementById('addPlayer').addEventListener('click', ()=>{ const id='p-'+Date.now(); const arr=store.profiles; arr.push({id,name:'New Player',bio:'',photo:'avatar.jpg',inventory:[]}); store.profiles=arr; store.currentId=id; refreshPlayerSelect(); });
-    document.getElementById('delPlayer').addEventListener('click', ()=>{ const arr=store.profiles; if(arr.length<=1){alert('لا يمكن حذف آخر لاعب');return;} const i=arr.findIndex(p=>p.id===store.currentId); if(i>=0){arr.splice(i,1); store.profiles=arr; store.currentId=arr[0].id; refreshPlayerSelect();} });
-    document.getElementById('saveProfile').addEventListener('click', ()=>{ const arr=store.profiles; const p=arr.find(x=>x.id===store.currentId); if(!p)return; p.name=pName.value.trim()||'Player'; p.bio=pBio.value.trim(); store.profiles=arr; refreshPlayerSelect(); });
-    pPhoto.addEventListener('change', e=>{ const f=e.target.files?.[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ const arr=store.profiles; const p=arr.find(x=>x.id===store.currentId); p.photo=r.result; store.profiles=arr; player.setIcon(avatarIcon(p.photo)); }; r.readAsDataURL(f); });
-    function renderInventory(){ const p=currentProfile(); invList.innerHTML=''; (p.inventory||[]).forEach((it,idx)=>{ const el=document.createElement('div'); el.className='chip'; el.innerHTML=`<span>${it.emoji||'📦'}</span><b>${it.name||'عنصر'}</b> <button data-i="${idx}">حذف</button>`; el.querySelector('button').addEventListener('click',e=>{ const i=+e.target.getAttribute('data-i'); const arr=store.profiles; const me=arr.find(x=>x.id===store.currentId); me.inventory.splice(i,1); store.profiles=arr; renderInventory(); }); invList.appendChild(el); }); }
-    document.getElementById('addItem').addEventListener('click', ()=>{ const emoji=(document.getElementById('invEmoji').value||'').trim()||'📦'; const name=(document.getElementById('invName').value||'').trim()||'عنصر'; const arr=store.profiles; const p=arr.find(x=>x.id===store.currentId); (p.inventory||(p.inventory=[])).push({emoji,name,at:Date.now()}); store.profiles=arr; document.getElementById('invEmoji').value=''; document.getElementById('invName').value=''; renderInventory(); });
-
-    /* Chat (مختصر) */
-    const chatFrom=document.getElementById('chatFrom'); const chatTo=document.getElementById('chatTo'); const chatList=document.getElementById('chatList'); const chatMsg=document.getElementById('chatMsg');
-    function refreshChatSelectors(){ const list=store.profiles; chatFrom.innerHTML=''; chatTo.innerHTML=''; list.forEach(p=>{const a=document.createElement('option'); a.value=p.id; a.textContent=p.name||'لاعب'; chatFrom.appendChild(a); const b=document.createElement('option'); b.value=p.id; b.textContent=p.name||'لاعب'; chatTo.appendChild(b);}); chatFrom.value=store.currentId||list[0].id; const def=list.find(p=>p.id!==chatFrom.value)||list[0]; chatTo.value=def.id; }
-    function renderChat(){ const f=chatFrom.value,t=chatTo.value; const msgs=store.chats.filter(m=>(m.from===f&&m.to===t)||(m.from===t&&m.to===f)).sort((a,b)=>a.at-b.at); chatList.innerHTML=''; msgs.forEach(m=>{ const d=document.createElement('div'); d.className='msg '+(m.from===f?'me':'them'); const s=(store.profiles.find(p=>p.id===m.from)||{}).name||'مجهول'; const time=new Date(m.at).toLocaleTimeString(); d.innerHTML=`<div>${m.text}</div><small>${s} • ${time}</small>`; chatList.appendChild(d);}); chatList.scrollTop=chatList.scrollHeight; }
-    document.getElementById('openChat').addEventListener('click', ()=>{ const o=chatPanel.classList.contains('open'); closePanels(); if(!o){ openPanel(chatPanel); refreshChatSelectors(); renderChat(); }});
-    document.getElementById('sendMsg').addEventListener('click', ()=>{ const text=chatMsg.value.trim(); if(!text)return; const from=chatFrom.value,to=chatTo.value; const arr=store.chats; arr.push({id:'m-'+Date.now(),from,to,text,at:Date.now()}); store.chats=arr; chatMsg.value=''; renderChat(); });
-    chatMsg.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); document.getElementById('sendMsg').click(); } });
-    document.getElementById('closeChat').addEventListener('click', ()=>closePanel(chatPanel));
-    document.getElementById('closeProfile').addEventListener('click', ()=>closePanel(profilePanel));
-    document.getElementById('openProfile').addEventListener('click', ()=>{ const o=profilePanel.classList.contains('open'); closePanels(); if(!o){ openPanel(profilePanel); refreshPlayerSelect(); }});
-    map.on('click', closePanels); map.on('dragstart', closePanels);
-    document.getElementById('map').addEventListener('pointerdown', closePanels);
   </script>
 </body>
 </html>
