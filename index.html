@@ -5,24 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Dubai Map – PWA</title>
 
-  <!-- PWA basics -->
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=4"/>
 
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
 
+    /* شريط التعليمات يمين فوق عشان ما يتعارض مع زر التربو */
     .hud {
-      position: fixed; left: 10px; top: 10px; z-index: 1000;
+      position: fixed; right: 10px; top: 10px; z-index: 1000;
       background: rgba(0,0,0,.55); color: #fff; padding: 8px 10px; border-radius: 10px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px;
     }
+
+    /* d-pad أسفل يمين */
     .pad {
       position: fixed; right: 12px; bottom: 12px; z-index: 1001;
       display: grid; grid-template-columns: 56px 56px 56px; grid-template-rows: 56px 56px 56px;
@@ -36,28 +39,35 @@
     }
     .btn:active { transform: scale(.97); }
     .hidden { visibility: hidden; }
-    #turbo {
-      font-size: 26px; background: rgba(255,213,0,.8); color: #000; font-weight: 700;
+
+    /* زر التربو ثابت أعلى يسار */
+    #turboFloat {
+      position: fixed; left: 12px; top: 12px; z-index: 1002;
+      background: rgba(255,213,0,.90); color: #000; font-weight: 700;
+      border-radius: 12px; padding: 8px 12px; font-size: 16px; user-select: none;
     }
-    #turbo:active { background: rgba(255,213,0,.95); }
+    #turboFloat:active { transform: scale(0.96); }
+
     @media (min-width: 900px) { .pad { right: 20px; bottom: 20px; } }
   </style>
 </head>
 <body>
-  <!-- شريط تعليمات -->
-  <div class="hud">اضغط الأسهم للتحرك · كبّر/صغّر باللمس · ⚡ للجري</div>
+  <div class="hud">السهم ↑↓←→ للتحرّك · كبّر/صغّر باللمس · ⚡ للجري</div>
 
-  <!-- خريطة لازم تبقى موجودة -->
+  <!-- الخريطة -->
   <div id="map"></div>
 
-  <!-- أزرار اللمس (مع زر Turbo في المنتصف) -->
+  <!-- زر التربو أعلى يسار -->
+  <button id="turboFloat">⚡ Turbo</button>
+
+  <!-- d-pad أسفل يمين (بدون تربو في الوسط الآن) -->
   <div class="pad" id="pad">
     <div class="hidden"></div>
     <div class="btn" data-k="ArrowUp">↑</div>
     <div class="hidden"></div>
 
     <div class="btn" data-k="ArrowLeft">←</div>
-    <div class="btn" data-k="Shift" id="turbo">⚡</div>
+    <div class="hidden"></div>
     <div class="btn" data-k="ArrowRight">→</div>
 
     <div class="hidden"></div>
@@ -65,18 +75,16 @@
     <div class="hidden"></div>
   </div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=4"></script>
   <script>
-    // تسجيل service worker
+    /* Service Worker (مع نسخة للاستبدال القسري عند التحديث) */
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(console.warn);
+        navigator.serviceWorker.register('./service-worker.js?ver=4').then(r => r.update?.()).catch(console.warn);
       });
     }
 
-    // تهيئة الخريطة
+    /* إعداد الخريطة */
     const dubai = [25.2048, 55.2708];
     const map = L.map('map', { zoomControl: true }).setView(dubai, 13);
 
@@ -84,11 +92,11 @@
       attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
     }).addTo(map);
 
-    // ماركر اللاعب
+    /* اللاعب */
     const playerIcon = L.icon({ iconUrl: 'player.png', iconSize: [44,44], iconAnchor: [22,22] });
     const player = L.marker(dubai, { draggable:false, icon: playerIcon }).addTo(map);
 
-    // استرجاع آخر موقع (إن وجد)
+    /* موقع محفوظ */
     let lat = dubai[0], lng = dubai[1];
     try {
       const saved = JSON.parse(localStorage.getItem('playerPos'));
@@ -103,14 +111,22 @@
       localStorage.setItem('playerPos', JSON.stringify(p));
     }
 
-    // سرعات الحركة (غيّر الأرقام لو عايز أسرع)
-    const WALK_SPEED_MPS   = 40;  // مشي سريع
-    const SPRINT_SPEED_MPS = 80;  // جري (Turbo/Shift)
+    /* سرعة الحركة */
+    const WALK_SPEED_MPS   = 40;  // أسرع
+    const SPRINT_SPEED_MPS = 80;  // جري
     const METERS_PER_DEG_LAT = 111000;
 
+    /* الحالة */
     let held = { up:false, down:false, left:false, right:false, sprint:false };
 
-    // كيبورد
+    /* قلبت الاتجاهات عشان كانت معكوسة عندك */
+    // لاحظ: dx للشرق/الغرب (طوليًا على الخريطة)، dy للشمال/الجنوب
+    // هنا خلّينا up يقلّل lat (يروح لفوق)، left يزيد/ينقص حسب المطلوب.
+    // بناءً على ملاحظتك: نعكس المحاور كالتالي:
+    const INVERT_VERTICAL = true;
+    const INVERT_HORIZONTAL = true;
+
+    /* كيبورد */
     window.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowUp')    held.up = true;
       if (e.key === 'ArrowDown')  held.down = true;
@@ -126,7 +142,7 @@
       if (e.key === 'Shift')      held.sprint = false;
     });
 
-    // لمس (d-pad)
+    /* لمس (d-pad) */
     const pad = document.getElementById('pad');
     function setHeldFromTarget(t, val) {
       const k = t.getAttribute('data-k'); if (!k) return;
@@ -134,7 +150,6 @@
       if (k === 'ArrowDown')  held.down  = val;
       if (k === 'ArrowLeft')  held.left  = val;
       if (k === 'ArrowRight') held.right = val;
-      if (k === 'Shift')      held.sprint= val;
     }
     pad.addEventListener('pointerdown', (e) => {
       const t = e.target.closest('.btn'); if (!t) return;
@@ -144,7 +159,15 @@
     pad.addEventListener('pointerup',   (e) => { const t = e.target.closest('.btn'); if (!t) return; setHeldFromTarget(t, false); });
     pad.addEventListener('pointercancel',() => { held = {up:false,down:false,left:false,right:false,sprint:false}; });
 
-    // حركة سلسة بالإطار الزمني
+    /* زر التربو أعلى يسار */
+    const turbo = document.getElementById('turboFloat');
+    function setSprint(val){ held.sprint = val; }
+    turbo.addEventListener('pointerdown', e => { setSprint(true);  turbo.setPointerCapture?.(e.pointerId); });
+    turbo.addEventListener('pointerup',   () => setSprint(false));
+    turbo.addEventListener('pointercancel',() => setSprint(false));
+    turbo.addEventListener('pointerleave',() => setSprint(false));
+
+    /* حلقة الحركة (مع عكس الاتجاهات) */
     let last = performance.now();
     function tick(now) {
       const dt = (now - last) / 1000; last = now;
@@ -152,17 +175,20 @@
       const stepDeg  = (speedMps / METERS_PER_DEG_LAT) * dt;
 
       let dx = 0, dy = 0;
-      if (held.up)    dy += stepDeg;
-      if (held.down)  dy -= stepDeg;
-      if (held.left)  dx -= stepDeg;
-      if (held.right) dx += stepDeg;
+
+      // لو مقلوب رأسيًا: فوق يزيد dy بالسالب
+      if (held.up)    dy += (INVERT_VERTICAL   ? -stepDeg : +stepDeg);
+      if (held.down)  dy += (INVERT_VERTICAL   ? +stepDeg : -stepDeg);
+      // لو مقلوب أفقيًا: اليسار يمشي للغرب لكن بنعكس
+      if (held.left)  dx += (INVERT_HORIZONTAL ? +stepDeg : -stepDeg);
+      if (held.right) dx += (INVERT_HORIZONTAL ? -stepDeg : +stepDeg);
 
       if (dx || dy) move(dx, dy);
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
 
-    // نقاط تجريبية
+    /* أمثلة نقاط */
     const areas = [
       { name: 'Downtown Dubai', pos: [25.1972, 55.2744] },
       { name: 'Dubai Marina',   pos: [25.0800, 55.1390] },
