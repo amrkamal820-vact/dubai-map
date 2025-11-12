@@ -5,27 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Dubai Map – PWA</title>
 
-  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=4"/>
-
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=5"/>
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
-
-    /* شريط التعليمات يمين فوق عشان ما يتعارض مع زر التربو */
     .hud {
       position: fixed; right: 10px; top: 10px; z-index: 1000;
       background: rgba(0,0,0,.55); color: #fff; padding: 8px 10px; border-radius: 10px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; font-size: 14px;
     }
-
-    /* d-pad أسفل يمين */
     .pad {
       position: fixed; right: 12px; bottom: 12px; z-index: 1001;
       display: grid; grid-template-columns: 56px 56px 56px; grid-template-rows: 56px 56px 56px;
@@ -39,28 +32,20 @@
     }
     .btn:active { transform: scale(.97); }
     .hidden { visibility: hidden; }
-
-    /* زر التربو ثابت أعلى يسار */
     #turboFloat {
       position: fixed; left: 12px; top: 12px; z-index: 1002;
-      background: rgba(255,213,0,.90); color: #000; font-weight: 700;
+      background: rgba(255,213,0,.95); color: #000; font-weight: 700;
       border-radius: 12px; padding: 8px 12px; font-size: 16px; user-select: none;
     }
     #turboFloat:active { transform: scale(0.96); }
-
     @media (min-width: 900px) { .pad { right: 20px; bottom: 20px; } }
   </style>
 </head>
 <body>
-  <div class="hud">السهم ↑↓←→ للتحرّك · كبّر/صغّر باللمس · ⚡ للجري</div>
-
-  <!-- الخريطة -->
+  <div class="hud">↑↓←→ للتحرّك · كبّر/صغّر باللمس · ⚡ للجري السريع جدًا</div>
   <div id="map"></div>
-
-  <!-- زر التربو أعلى يسار -->
   <button id="turboFloat">⚡ Turbo</button>
 
-  <!-- d-pad أسفل يمين (بدون تربو في الوسط الآن) -->
   <div class="pad" id="pad">
     <div class="hidden"></div>
     <div class="btn" data-k="ArrowUp">↑</div>
@@ -75,28 +60,27 @@
     <div class="hidden"></div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=4"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=5"></script>
   <script>
-    /* Service Worker (مع نسخة للاستبدال القسري عند التحديث) */
+    // Service worker مع رقم إصدار جديد لإجبار التحديث
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?ver=4').then(r => r.update?.()).catch(console.warn);
+        navigator.serviceWorker.register('./service-worker.js?ver=5').then(r => r.update?.()).catch(console.warn);
       });
     }
 
-    /* إعداد الخريطة */
+    // الخريطة
     const dubai = [25.2048, 55.2708];
     const map = L.map('map', { zoomControl: true }).setView(dubai, 13);
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
     }).addTo(map);
 
-    /* اللاعب */
+    // اللاعب
     const playerIcon = L.icon({ iconUrl: 'player.png', iconSize: [44,44], iconAnchor: [22,22] });
     const player = L.marker(dubai, { draggable:false, icon: playerIcon }).addTo(map);
 
-    /* موقع محفوظ */
+    // الحالة
     let lat = dubai[0], lng = dubai[1];
     try {
       const saved = JSON.parse(localStorage.getItem('playerPos'));
@@ -104,29 +88,25 @@
     } catch {}
 
     function move(dx, dy) {
-      lat += dy; lng += dx;
+      lat += dy; lng += dx;         // dx → شرق/غرب (lng) ، dy → شمال/جنوب (lat)
       const p = [lat, lng];
       player.setLatLng(p);
       map.panTo(p, { animate: false });
       localStorage.setItem('playerPos', JSON.stringify(p));
     }
 
-    /* سرعة الحركة */
-    const WALK_SPEED_MPS   = 40;  // أسرع
-    const SPRINT_SPEED_MPS = 80;  // جري
+    // السرعات (Turbo أسرع)
+    const WALK_SPEED_MPS   = 40;   // مشي سريع
+    const SPRINT_SPEED_MPS = 140;  // Turbo أسرع بوضوح
     const METERS_PER_DEG_LAT = 111000;
 
-    /* الحالة */
     let held = { up:false, down:false, left:false, right:false, sprint:false };
 
-    /* قلبت الاتجاهات عشان كانت معكوسة عندك */
-    // لاحظ: dx للشرق/الغرب (طوليًا على الخريطة)، dy للشمال/الجنوب
-    // هنا خلّينا up يقلّل lat (يروح لفوق)، left يزيد/ينقص حسب المطلوب.
-    // بناءً على ملاحظتك: نعكس المحاور كالتالي:
-    const INVERT_VERTICAL = true;
-    const INVERT_HORIZONTAL = true;
+    // اتجاهات مضبوطة: يمين = يزيد lng، يسار = يقلل lng
+    const INVERT_VERTICAL = true;      // خليه زي ما كان عندك شغال كويس
+    const INVERT_HORIZONTAL = false;   // ← أصلحنا العكس هنا
 
-    /* كيبورد */
+    // كيبورد
     window.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowUp')    held.up = true;
       if (e.key === 'ArrowDown')  held.down = true;
@@ -142,7 +122,7 @@
       if (e.key === 'Shift')      held.sprint = false;
     });
 
-    /* لمس (d-pad) */
+    // لمس
     const pad = document.getElementById('pad');
     function setHeldFromTarget(t, val) {
       const k = t.getAttribute('data-k'); if (!k) return;
@@ -159,15 +139,15 @@
     pad.addEventListener('pointerup',   (e) => { const t = e.target.closest('.btn'); if (!t) return; setHeldFromTarget(t, false); });
     pad.addEventListener('pointercancel',() => { held = {up:false,down:false,left:false,right:false,sprint:false}; });
 
-    /* زر التربو أعلى يسار */
+    // زر Turbo العلوي
     const turbo = document.getElementById('turboFloat');
-    function setSprint(val){ held.sprint = val; }
+    const setSprint = (v)=> held.sprint = v;
     turbo.addEventListener('pointerdown', e => { setSprint(true);  turbo.setPointerCapture?.(e.pointerId); });
     turbo.addEventListener('pointerup',   () => setSprint(false));
     turbo.addEventListener('pointercancel',() => setSprint(false));
     turbo.addEventListener('pointerleave',() => setSprint(false));
 
-    /* حلقة الحركة (مع عكس الاتجاهات) */
+    // حركة سلسة
     let last = performance.now();
     function tick(now) {
       const dt = (now - last) / 1000; last = now;
@@ -175,27 +155,22 @@
       const stepDeg  = (speedMps / METERS_PER_DEG_LAT) * dt;
 
       let dx = 0, dy = 0;
-
-      // لو مقلوب رأسيًا: فوق يزيد dy بالسالب
-      if (held.up)    dy += (INVERT_VERTICAL   ? -stepDeg : +stepDeg);
+      if (held.up)    dy += (INVERT_VERTICAL   ? -stepDeg : +stepDeg); // فوق يقلل lat
       if (held.down)  dy += (INVERT_VERTICAL   ? +stepDeg : -stepDeg);
-      // لو مقلوب أفقيًا: اليسار يمشي للغرب لكن بنعكس
-      if (held.left)  dx += (INVERT_HORIZONTAL ? +stepDeg : -stepDeg);
-      if (held.right) dx += (INVERT_HORIZONTAL ? -stepDeg : +stepDeg);
+      if (held.left)  dx += (INVERT_HORIZONTAL ? +stepDeg : -stepDeg); // يسار يقلل lng
+      if (held.right) dx += (INVERT_HORIZONTAL ? -stepDeg : +stepDeg); // يمين يزيد lng
 
       if (dx || dy) move(dx, dy);
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
 
-    /* أمثلة نقاط */
-    const areas = [
-      { name: 'Downtown Dubai', pos: [25.1972, 55.2744] },
-      { name: 'Dubai Marina',   pos: [25.0800, 55.1390] },
-      { name: 'Deira',          pos: [25.2711, 55.3075] },
-      { name: 'Jumeirah',       pos: [25.2028, 55.2397] },
-    ];
-    areas.forEach(a => L.circleMarker(a.pos, { radius: 6 }).addTo(map).bindPopup(a.name));
+    // نقاط مثال
+    [{"name":"Downtown Dubai","pos":[25.1972,55.2744]},
+     {"name":"Dubai Marina","pos":[25.08,55.139]},
+     {"name":"Deira","pos":[25.2711,55.3075]},
+     {"name":"Jumeirah","pos":[25.2028,55.2397]}]
+     .forEach(a=>L.circleMarker(a.pos,{radius:6}).addTo(map).bindPopup(a.name));
   </script>
 </body>
 </html>
