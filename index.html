@@ -5,196 +5,306 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Dubai Map – PWA</title>
 
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=13"/>
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css?v=14"/>
   <style>
     html, body { height: 100%; margin: 0; }
     #map { height: 100%; width: 100%; }
-    .hud{
-      position:fixed; right:10px; top:10px; z-index:1000;
-      background:rgba(0,0,0,.55); color:#fff; padding:8px 10px; border-radius:10px; font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+
+    .hud {
+      position: fixed; right: 10px; top: 10px; z-index: 1000;
+      background: rgba(0,0,0,.55); color: #fff; padding: 8px 10px; border-radius: 10px;
+      font: 14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     }
-    .pad{
-      position:fixed; right:12px; bottom:12px; z-index:1001;
-      display:grid; grid-template-columns:56px 56px 56px; grid-template-rows:56px 56px 56px; gap:6px; user-select:none;
-    }
-    .btn{ background:rgba(0,0,0,.45); color:#fff; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:18px; backdrop-filter:blur(6px); touch-action:none;}
-    .btn:active{ transform:scale(.97); }
-    .hidden{ visibility:hidden; }
+
+    /* Floating buttons */
     #turboToggle{
       position:fixed; left:12px; top:12px; z-index:1002;
-      border:0; border-radius:12px; padding:8px 12px; font-size:16px; font-weight:700; color:#000; background:rgba(255,213,0,.95); user-select:none;
+      border:0; border-radius:12px; padding:8px 12px; font-size:16px; font-weight:700;
+      color:#000; background:rgba(255,213,0,.95); user-select:none;
     }
     #turboToggle:active{ transform:scale(.96); }
+
     #gpsBtn{
       position:fixed; left:12px; bottom:12px; z-index:1002;
-      width:56px; height:56px; border-radius:50%; border:0; background:rgba(0,0,0,.55); color:#fff; font-size:22px; font-weight:700; display:grid; place-items:center; user-select:none; backdrop-filter:blur(6px);
+      width:56px; height:56px; border-radius:50%; border:0; background:rgba(0,0,0,.55);
+      color:#fff; font-size:22px; font-weight:700; display:grid; place-items:center; user-select:none; backdrop-filter:blur(6px);
     }
     #gpsBtn:active{ transform:scale(.96); }
 
-    .poi-popup .leaflet-popup-content{ margin:8px 10px; font-size:14px; line-height:1.5; direction:rtl; }
-    .poi-popup .leaflet-popup-tip, .poi-popup .leaflet-popup-content-wrapper{ background:#111827; color:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.35); }
-
-    /* أيقونات Div سهلة بإيموجي */
-    .divicon{
-      background:#fff; border-radius:12px; border:2px solid #111827; padding:4px 6px; font-size:16px; line-height:1; box-shadow:0 2px 8px rgba(0,0,0,.15);
+    /* profile & chat launchers */
+    .fab {
+      position: fixed; right: 12px; z-index: 1002; width: 56px; height: 56px;
+      border-radius: 16px; border: 0; display: grid; place-items: center; color:#fff;
+      background: #111827cc; backdrop-filter: blur(6px); font-size: 22px; user-select: none;
     }
-    .divicon.mall{ border-color:#a21caf; }       /* مولات */
-    .divicon.attraction{ border-color:#ef4444;}  /* معالم سياحية */
-    .divicon.metro{ border-color:#0ea5e9;}       /* مترو */
-    .divicon.hospital{ border-color:#16a34a;}    /* مستشفى */
-    .divicon.police{ border-color:#1f2937;}      /* شرطة */
-    .divicon.beach{ border-color:#f59e0b;}       /* شاطئ */
+    #openProfile { bottom: 80px; }
+    #openChat    { bottom: 12px; }
+
+    /* d-pad أسفل يمين */
+    .pad {
+      position: fixed; right: 84px; bottom: 12px; z-index: 1001;
+      display: grid; grid-template-columns: 56px 56px 56px; grid-template-rows: 56px 56px 56px;
+      gap: 6px; user-select: none;
+    }
+    .btn {
+      background: rgba(0,0,0,.45); color:#fff; border-radius:14px;
+      display:flex; align-items:center; justify-content:center; font-size:18px; backdrop-filter: blur(6px);
+      touch-action:none;
+    }
+    .btn:active{ transform: scale(.97); }
+    .hidden{ visibility:hidden; }
+
+    /* Popups */
+    .poi-popup .leaflet-popup-content{ margin:8px 10px; font-size:14px; line-height:1.5; direction:rtl; }
+    .poi-popup .leaflet-popup-tip, .poi-popup .leaflet-popup-content-wrapper{
+      background:#111827; color:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,.35);
+    }
+
+    /* DivIcon for avatar */
+    .avatar-icon {
+      width:44px; height:44px; border-radius:50%; overflow:hidden; border:2px solid #0ea5e9;
+      box-shadow:0 2px 10px rgba(0,0,0,.25);
+      background:#fff center/cover no-repeat;
+    }
+
+    /* Panels (Profile / Chat) */
+    .panel {
+      position: fixed; inset: auto 0 0 0; top: 30%;
+      background: rgba(17,24,39,.98); color:#fff; border-radius: 16px 16px 0 0;
+      z-index: 1003; transform: translateY(100%); transition: transform .25s ease; padding:14px;
+      font: 14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      max-height: 70%; overflow:auto;
+    }
+    .panel.open { transform: translateY(0); }
+    .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .field { display:flex; flex-direction:column; gap:6px; margin:8px 0; }
+    .field input[type="text"], .field textarea, .field select {
+      background:#111827; border:1px solid #374151; color:#fff; border-radius:10px; padding:10px 12px; outline:none;
+    }
+    .chip { display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border-radius:12px;
+      background:#0b1220; border:1px solid #25324a; margin:4px 6px 0 0; }
+    .chip b{font-weight:600}
+    .chip button{ background:#ef4444; color:#fff; border:0; border-radius:10px; padding:2px 8px; }
+    .btnPri {
+      background:#22c55e; color:#06230f; border:0; border-radius:12px; padding:10px 14px; font-weight:700;
+    }
+    .btnSec {
+      background:#0b1220; color:#d1d5db; border:1px solid #25324a; border-radius:12px; padding:10px 14px; font-weight:600;
+    }
+    .title { font-size:16px; font-weight:800; margin:6px 0 10px; }
+
+    /* Chat */
+    .chatList { background:#0b1220; border:1px solid #25324a; border-radius:12px; padding:8px; max-height: 32vh; overflow:auto; }
+    .msg { padding:8px 10px; border-radius:10px; margin:6px 0; max-width:85%; }
+    .me  { background:#075985; margin-left:auto; }
+    .them{ background:#374151; margin-right:auto; }
+    .msg small { display:block; opacity:.75; margin-top:4px; font-size:12px; }
+    .chatInput { display:flex; gap:8px; margin-top:8px; }
+    .chatInput input{ flex:1; }
 
     @media (min-width:900px){
-      .pad{ right:20px; bottom:20px; }
+      .pad{ right: 120px; bottom: 20px; }
       #gpsBtn{ left:20px; bottom:20px; }
+      #openProfile{ right:20px; bottom:96px; }
+      #openChat{ right:20px; bottom:20px; }
     }
   </style>
 </head>
 <body>
-  <div class="hud">↑↓←→ للتحرّك · كبّر/صغّر باللمس · ⚡ Turbo · 🧭 GPS · معالم مصنّفة من الكنترول يمين</div>
+  <div class="hud">↑↓←→ للتحرّك · ⚡ Turbo · 🧭 GPS · 👤 بروفايل + 🧺 مقتنيات · 💬 شات</div>
+
   <div id="map"></div>
 
+  <!-- Floating buttons -->
   <button id="turboToggle">⚡ Turbo OFF</button>
   <button id="gpsBtn" title="اذهب إلى موقعي">🧭</button>
+  <button id="openProfile" class="fab" title="البروفايل">👤</button>
+  <button id="openChat" class="fab" title="الشات">💬</button>
 
+  <!-- d-pad -->
   <div class="pad" id="pad">
     <div class="hidden"></div><div class="btn" data-k="ArrowUp">↑</div><div class="hidden"></div>
     <div class="btn" data-k="ArrowLeft">←</div><div class="hidden"></div><div class="btn" data-k="ArrowRight">→</div>
     <div class="hidden"></div><div class="btn" data-k="ArrowDown">↓</div><div class="hidden"></div>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=13"></script>
+  <!-- PROFILE PANEL -->
+  <div id="profilePanel" class="panel" aria-hidden="true">
+    <div class="title">👤 البروفايل & المقتنيات</div>
+    <div class="row">
+      <div class="field">
+        <label>اللاعب الحالي</label>
+        <select id="playerSelect"></select>
+      </div>
+      <button id="addPlayer" class="btnSec">➕ لاعب جديد</button>
+      <button id="delPlayer" class="btnSec">🗑️ حذف اللاعب</button>
+    </div>
+
+    <div class="row">
+      <div class="field" style="min-width:220px">
+        <label>الاسم</label>
+        <input type="text" id="pName" placeholder="اكتب اسم اللاعب">
+      </div>
+      <div class="field" style="min-width:220px">
+        <label>النبذة</label>
+        <input type="text" id="pBio" placeholder="نبذة قصيرة">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>الصورة (Avatar)</label>
+        <input type="file" id="pPhoto" accept="image/*">
+      </div>
+      <button id="saveProfile" class="btnPri">💾 حفظ البروفايل</button>
+    </div>
+
+    <div class="title">🧺 المقتنيات (Inventory)</div>
+    <div class="row">
+      <div class="field">
+        <label>أيقونة (Emoji)</label>
+        <input type="text" id="invEmoji" placeholder="🚗 أو 📱 ..." maxlength="3" style="width:100px">
+      </div>
+      <div class="field">
+        <label>الاسم</label>
+        <input type="text" id="invName" placeholder="عربية / موبايل ...">
+      </div>
+      <button id="addItem" class="btnSec">➕ إضافة</button>
+    </div>
+    <div id="invList" class="row"></div>
+  </div>
+
+  <!-- CHAT PANEL -->
+  <div id="chatPanel" class="panel" aria-hidden="true">
+    <div class="title">💬 الشات بين اللاعبين (محليًا)</div>
+    <div class="row">
+      <div class="field">
+        <label>أنا:</label>
+        <select id="chatFrom"></select>
+      </div>
+      <div class="field">
+        <label>إلى:</label>
+        <select id="chatTo"></select>
+      </div>
+    </div>
+
+    <div id="chatList" class="chatList"></div>
+
+    <div class="chatInput">
+      <input id="chatMsg" type="text" placeholder="اكتب رسالتك...">
+      <button id="sendMsg" class="btnPri">إرسال</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js?v=14"></script>
   <script>
-    // تحديث SW
+    // ===== Service Worker version =====
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js?ver=13').then(r=>r.update?.()).catch(console.warn);
+        navigator.serviceWorker.register('./service-worker.js?ver=14').then(r=>r.update?.()).catch(console.warn);
       });
     }
 
-    // خريطة
-    const dubai = [25.2048,55.2708];
-    const map = L.map('map',{zoomControl:true}).setView(dubai,13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors',maxZoom:19}).addTo(map);
+    // ===== Map setup =====
+    const dubai = [25.2048, 55.2708];
+    const map = L.map('map', { zoomControl: true }).setView(dubai, 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+    }).addTo(map);
 
-    // لاعب + easing
-    const playerIcon = L.icon({iconUrl:'player.png',iconSize:[44,44],iconAnchor:[22,22]});
-    const player = L.marker(dubai,{draggable:false,icon:playerIcon}).addTo(map);
+    // ===== Player icon (avatar DivIcon if exists) =====
+    function avatarIcon(url){
+      if (!url) return L.icon({ iconUrl: 'player.png', iconSize:[44,44], iconAnchor:[22,22] });
+      return L.divIcon({ html:`<div class="avatar-icon" style="background-image:url('${url.replace(/'/g,"&#39;")}')"></div>`, className:'', iconSize:[44,44], iconAnchor:[22,22] });
+    }
 
-    let lat=dubai[0], lng=dubai[1], tLat=lat, tLng=lng;
+    let lat = dubai[0], lng = dubai[1], tLat = lat, tLng = lng;
 
-    try{ const saved=JSON.parse(localStorage.getItem('playerPos')); if(Array.isArray(saved)){ lat=saved[0]; lng=saved[1]; tLat=lat; tLng=lng; player.setLatLng(saved); map.setView(saved);} }catch{}
+    // ===== Profiles store =====
+    const store = {
+      get profiles(){ return JSON.parse(localStorage.getItem('profiles')||'[]'); },
+      set profiles(v){ localStorage.setItem('profiles', JSON.stringify(v)); },
+      get currentId(){ return localStorage.getItem('currentPlayerId'); },
+      set currentId(v){ localStorage.setItem('currentPlayerId', v); },
+      get chats(){ return JSON.parse(localStorage.getItem('chats')||'[]'); },
+      set chats(v){ localStorage.setItem('chats', JSON.stringify(v)); }
+    };
 
-    let saveAccum=0; function savePos(dt){ saveAccum+=dt; if(saveAccum>=0.5){ localStorage.setItem('playerPos',JSON.stringify([lat,lng])); saveAccum=0; } }
-    function nudgeTarget(dx,dy){ tLng+=dx; tLat+=dy; }
+    // Seed if empty
+    if (store.profiles.length === 0) {
+      const id = 'p-' + Date.now();
+      store.profiles = [{ id, name:'Player 1', bio:'Ready to explore Dubai!', photo:null, inventory:[] }];
+      store.currentId = id;
+    }
 
+    function currentProfile(){
+      const arr = store.profiles;
+      return arr.find(p=>p.id===store.currentId) || arr[0];
+    }
+
+    // Marker (uses avatar if set)
+    let player = L.marker([lat,lng], { draggable:false, icon: avatarIcon(currentProfile().photo) }).addTo(map);
+
+    // Restore last pos
+    try {
+      const saved = JSON.parse(localStorage.getItem('playerPos'));
+      if (Array.isArray(saved)) { lat=saved[0]; lng=saved[1]; tLat=lat; tLng=lng; player.setLatLng(saved); map.setView(saved); }
+    } catch {}
+
+    // Save throttled
+    let saveAccum = 0;
+    function savePos(dt){
+      saveAccum += dt;
+      if (saveAccum >= 0.5) { localStorage.setItem('playerPos', JSON.stringify([lat, lng])); saveAccum = 0; }
+    }
+
+    // Movement model (smooth easing)
+    function nudgeTarget(dx,dy){ tLng += dx; tLat += dy; }
     const WALK_SPEED_MPS=40, SPRINT_SPEED_MPS=180, METERS_PER_DEG_LAT=111000;
-    const SMOOTH=0.18, PAN_OPTS={animate:true, duration:0.15, easeLinearity:0.25};
+    const SMOOTH=0.18, PAN_OPTS={ animate:true, duration:0.15, easeLinearity:0.25 };
 
     let held={up:false,down:false,left:false,right:false,sprint:false};
-    const turboBtn=document.getElementById('turboToggle');
-    function renderTurbo(){ turboBtn.textContent=held.sprint?'⚡ Turbo ON':'⚡ Turbo OFF'; turboBtn.style.background=held.sprint?'rgba(255,80,0,.95)':'rgba(255,213,0,.95)'; }
-    turboBtn.addEventListener('click',()=>{ held.sprint=!held.sprint; renderTurbo(); }); renderTurbo();
+    const turboBtn = document.getElementById('turboToggle');
+    function renderTurbo(){ turboBtn.textContent = held.sprint ? '⚡ Turbo ON' : '⚡ Turbo OFF'; turboBtn.style.background = held.sprint ? 'rgba(255,80,0,.95)' : 'rgba(255,213,0,.95)'; }
+    turboBtn.addEventListener('click', ()=>{ held.sprint=!held.sprint; renderTurbo(); }); renderTurbo();
 
-    window.addEventListener('keydown',e=>{ if(e.key==='ArrowUp')held.up=true; if(e.key==='ArrowDown')held.down=true; if(e.key==='ArrowLeft')held.left=true; if(e.key==='ArrowRight')held.right=true; if(e.key==='Shift'){held.sprint=true; renderTurbo();} });
-    window.addEventListener('keyup',e=>{ if(e.key==='ArrowUp')held.up=false; if(e.key==='ArrowDown')held.down=false; if(e.key==='ArrowLeft')held.left=false; if(e.key==='ArrowRight')held.right=false; if(e.key==='Shift'){held.sprint=false; renderTurbo();} });
+    window.addEventListener('keydown', (e)=>{
+      if (e.key==='ArrowUp') held.up=true;
+      if (e.key==='ArrowDown') held.down=true;
+      if (e.key==='ArrowLeft') held.left=true;
+      if (e.key==='ArrowRight') held.right=true;
+      if (e.key==='Shift'){ held.sprint=true; renderTurbo(); }
+    });
+    window.addEventListener('keyup', (e)=>{
+      if (e.key==='ArrowUp') held.up=false;
+      if (e.key==='ArrowDown') held.down=false;
+      if (e.key==='ArrowLeft') held.left=false;
+      if (e.key==='ArrowRight') held.right=false;
+      if (e.key==='Shift'){ held.sprint=false; renderTurbo(); }
+    });
 
-    const pad=document.getElementById('pad');
-    function setHeldFromTarget(t,val){ const k=t.getAttribute('data-k'); if(!k)return; if(k==='ArrowUp')held.up=val; if(k==='ArrowDown')held.down=val; if(k==='ArrowLeft')held.left=val; if(k==='ArrowRight')held.right=val; }
-    pad.addEventListener('pointerdown',e=>{ const t=e.target.closest('.btn'); if(!t)return; setHeldFromTarget(t,true); t.setPointerCapture?.(e.pointerId); });
-    pad.addEventListener('pointerup',e=>{ const t=e.target.closest('.btn'); if(!t)return; setHeldFromTarget(t,false); });
+    const pad = document.getElementById('pad');
+    function setHeldFromTarget(t,val){ const k=t.getAttribute('data-k'); if(!k) return;
+      if(k==='ArrowUp') held.up=val; if(k==='ArrowDown') held.down=val; if(k==='ArrowLeft') held.left=val; if(k==='ArrowRight') held.right=val; }
+    pad.addEventListener('pointerdown', e=>{ const t=e.target.closest('.btn'); if(!t) return; setHeldFromTarget(t,true); t.setPointerCapture?.(e.pointerId); });
+    pad.addEventListener('pointerup',   e=>{ const t=e.target.closest('.btn'); if(!t) return; setHeldFromTarget(t,false); });
     pad.addEventListener('pointercancel',()=>{ held={up:false,down:false,left:false,right:false,sprint:held.sprint}; });
 
-    // POI قربك + Ding
-    function distMeters(aLat,aLng,bLat,bLng){ const R=6371000,toRad=d=>d*Math.PI/180; const dLat=toRad(bLat-aLat),dLng=toRad(bLng-aLng); const s1=Math.sin(dLat/2),s2=Math.sin(dLng/2); const A=s1*s1+Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*s2*s2; return 2*R*Math.asin(Math.min(1,Math.sqrt(A))); }
+    // POIs for proximity popups
+    function distMeters(aLat,aLng,bLat,bLng){ const R=6371000,toRad=d=>d*Math.PI/180; const dLat=toRad(bLat-aLat), dLng=toRad(bLng-aLng);
+      const s1=Math.sin(dLat/2), s2=Math.sin(dLng/2); const A=s1*s1 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*s2*s2; return 2*R*Math.asin(Math.min(1,Math.sqrt(A))); }
     const NEAR=250; let activePOI=null, popupTimer=null; const cooldown={};
-    function playDing(){ try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(), g=ctx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=0.001; o.connect(g).connect(ctx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.2,ctx.currentTime+0.02); g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.18); o.stop(ctx.currentTime+0.2);}catch(e){} }
-    function openPOI(p){ activePOI=p.name; player.bindPopup(p.msg,{offset:[0,-28],autoPan:false,closeButton:false,className:'poi-popup'}).openPopup(); playDing(); if(popupTimer)clearTimeout(popupTimer); popupTimer=setTimeout(()=>{ player.closePopup(); activePOI=null; cooldown[p.name]=performance.now()+3000; },4000); }
-    function updatePOIPopup(){ let found=null; for(const p of corePOIs){ if(distMeters(lat,lng,p.pos[0],p.pos[1])<=NEAR){ found=p; break; } } const now=performance.now(); if(found){ const cd=cooldown[found.name]||0; if(!activePOI && now>cd) openPOI(found); } else { if(activePOI){ player.closePopup(); activePOI=null; } if(popupTimer){ clearTimeout(popupTimer); popupTimer=null; } } }
-
-    // === المعالم المصنّفة ===
-    // دالة أيقونة Div بإيموجي وفئة CSS للتلوين
-    function ico(emoji, cls=''){ return L.divIcon({ html:`<div class="divicon ${cls}">${emoji}</div>`, className:'', iconSize:[28,28], iconAnchor:[14,14] }); }
-
-    // مجموعات طبقات
-    const gAttractions = L.layerGroup();   // معالم سياحية
-    const gMalls       = L.layerGroup();   // مولات
-    const gMetro       = L.layerGroup();   // مترو
-    const gHospitals   = L.layerGroup();   // مستشفيات
-    const gPolice      = L.layerGroup();   // شرطة
-    const gBeaches     = L.layerGroup();   // شواطئ
-
-    // بيانات سريعة (تقدر تزود براحتك)
-    const attractions = [
-      {name:'Burj Khalifa',   pos:[25.1972,55.2744], icon:ico('🗼','attraction'), info:'أطول برج في العالم'},
-      {name:'Museum of the Future', pos:[25.2269,55.2865], icon:ico('🏛️','attraction'), info:'متحف المستقبل'},
-      {name:'Dubai Frame',    pos:[25.2343,55.3001], icon:ico('🖼️','attraction'), info:'برواز دبي'},
-      {name:'Ain Dubai',      pos:[25.0775,55.1200], icon:ico('🎡','attraction'), info:'عين دبي'},
-    ];
-    const malls = [
-      {name:'Dubai Mall',     pos:[25.1975,55.2790], icon:ico('🛍️','mall'), info:'أكبر مول في دبي'},
-      {name:'Mall of the Emirates', pos:[25.1180,55.2007], icon:ico('🛒','mall'), info:'سكي دبي'},
-      {name:'Ibn Battuta Mall',    pos:[25.0445,55.1187], icon:ico('🛍️','mall'), info:'تصاميم عالمية'},
-      {name:'Deira City Centre',   pos:[25.2532,55.3349], icon:ico('🛍️','mall'), info:'Deira City Centre'},
-    ];
-    const metro = [
-      {name:'Burj Khalifa/Dubai Mall', pos:[25.2061,55.2724], icon:ico('🚇','metro')},
-      {name:'Mall of the Emirates',    pos:[25.1186,55.2002], icon:ico('🚇','metro')},
-      {name:'Dubai Marina',            pos:[25.0789,55.1411], icon:ico('🚇','metro')},
-      {name:'Airport T3',              pos:[25.2479,55.3525], icon:ico('🚇','metro')},
-    ];
-    const hospitals = [
-      {name:'Rashid Hospital',   pos:[25.2402,55.3119], icon:ico('🏥','hospital')},
-      {name:'Dubai Hospital',    pos:[25.2766,55.3160], icon:ico('🏥','hospital')},
-      {name:'Mediclinic City',   pos:[25.1249,55.2022], icon:ico('🏥','hospital')},
-    ];
-    const police = [
-      {name:'Dubai Police HQ', pos:[25.2482,55.3307], icon:ico('👮','police')},
-      {name:'Jumeirah Police', pos:[25.2029,55.2448], icon:ico('👮','police')},
-    ];
-    const beaches = [
-      {name:'JBR Beach',     pos:[25.0770,55.1324], icon:ico('🏖️','beach')},
-      {name:'Kite Beach',    pos:[25.1807,55.2327], icon:ico('🏖️','beach')},
-      {name:'La Mer Beach',  pos:[25.2460,55.2815], icon:ico('🏖️','beach')},
-    ];
-
-    // أضف الماركرز مع Popups
-    function addListToGroup(list, group){
-      list.forEach(p=>{
-        const m=L.marker(p.pos,{icon:p.icon}).addTo(group);
-        m.bindPopup(`<b>${p.name}</b>${p.info?'<br>'+p.info:''}`);
-      });
-    }
-    addListToGroup(attractions,gAttractions);
-    addListToGroup(malls,gMalls);
-    addListToGroup(metro,gMetro);
-    addListToGroup(hospitals,gHospitals);
-    addListToGroup(police,gPolice);
-    addListToGroup(beaches,gBeaches);
-
-    // أضف الطبقات للخريطة (تكون شغّالة افتراضيًا لبعضها)
-    gAttractions.addTo(map);
-    gMalls.addTo(map);
-    gMetro.addTo(map);
-
-    // كنترول طبقات (يمين أعلى افتراضي)
-    const overlays = {
-      "🗼 معالم": gAttractions,
-      "🛍️ مولات": gMalls,
-      "🚇 مترو": gMetro,
-      "🏥 مستشفيات": gHospitals,
-      "👮 شرطة": gPolice,
-      "🏖️ شواطئ": gBeaches,
-    };
-    L.control.layers(null, overlays, { collapsed:true, position:'topright' }).addTo(map);
-
-    // نقاط قرب (لرسائل فوق اللاعب) – بنستخدم بعض المعالم الأساسية فقط
+    function playDing(){ try{ const ctx=new (window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(),g=ctx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=0.001;
+      o.connect(g).connect(ctx.destination); o.start(); g.gain.exponentialRampToValueAtTime(0.2,ctx.currentTime+0.02); g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.18); o.stop(ctx.currentTime+0.2);}catch(e){} }
+    function openPOI(p){ activePOI=p.name; player.bindPopup(p.msg,{offset:[0,-28],autoPan:false,closeButton:false,className:'poi-popup'}).openPopup(); playDing();
+      if(popupTimer) clearTimeout(popupTimer); popupTimer=setTimeout(()=>{ player.closePopup(); activePOI=null; cooldown[p.name]=performance.now()+3000; },4000); }
     const corePOIs = [
       { name:'Dubai Mall', pos:[25.1975,55.2790], msg:'أنت بالقرب من <b>Dubai Mall</b> 🛍️' },
       { name:'Burj Khalifa', pos:[25.1972,55.2744], msg:'أنت بالقرب من <b>Burj Khalifa</b> 🗼' },
@@ -202,29 +312,33 @@
       { name:'DXB T3', pos:[25.2487,55.3526], msg:'أنت بالقرب من <b>Dubai Int’l Airport – T3</b> ✈️' },
       { name:'Deira City Ctr', pos:[25.2532,55.3349], msg:'أنت بالقرب من <b>Deira City Centre</b> 🛒' },
     ];
+    function updatePOIPopup(){
+      let found=null; for(const p of corePOIs){ if(distMeters(lat,lng,p.pos[0],p.pos[1])<=NEAR){ found=p; break; } }
+      const now=performance.now();
+      if(found){ const cd=cooldown[found.name]||0; if(!activePOI && now>cd) openPOI(found); }
+      else { if(activePOI){ player.closePopup(); activePOI=null; } if(popupTimer){ clearTimeout(popupTimer); popupTimer=null; } }
+    }
 
     // GPS
-    const gpsBtn=document.getElementById('gpsBtn');
-    gpsBtn.addEventListener('click',()=>{
+    document.getElementById('gpsBtn').addEventListener('click', ()=>{
       if(!('geolocation' in navigator)){ alert('المتصفح لا يدعم GPS'); return; }
-      gpsBtn.disabled=true; gpsBtn.style.opacity=0.7;
+      const btn = document.getElementById('gpsBtn'); btn.disabled=true; btn.style.opacity=.7;
       navigator.geolocation.getCurrentPosition(pos=>{
-        gpsBtn.disabled=false; gpsBtn.style.opacity=1;
-        const {latitude,longitude,accuracy}=pos.coords;
+        btn.disabled=false; btn.style.opacity=1;
+        const { latitude, longitude, accuracy } = pos.coords;
         tLat=latitude; tLng=longitude; lat=latitude; lng=longitude;
-        player.setLatLng([lat,lng]);
-        map.setView([lat,lng], Math.max(map.getZoom(),16), {animate:true,duration:0.4});
-        const circle=L.circle([lat,lng],{radius:Math.max(accuracy,25),color:'#3b82f6',fillColor:'#60a5fa',fillOpacity:0.2,weight:1}).addTo(map);
+        player.setLatLng([lat,lng]); map.setView([lat,lng], Math.max(map.getZoom(),16), {animate:true,duration:.4});
+        const circle=L.circle([lat,lng],{radius:Math.max(accuracy,25),color:'#3b82f6',fillColor:'#60a5fa',fillOpacity:.2,weight:1}).addTo(map);
         setTimeout(()=>map.removeLayer(circle),4000);
-      }, err=>{ gpsBtn.disabled=false; gpsBtn.style.opacity=1; alert('تعذّر تحديد الموقع: '+(err.message||err.code)); }, {enableHighAccuracy:true, timeout:10000, maximumAge:300000});
+      }, err=>{ btn.disabled=false; btn.style.opacity=1; alert('تعذّر تحديد الموقع: '+(err.message||err.code)); }, {enableHighAccuracy:true, timeout:10000, maximumAge:300000});
     });
 
-    // حلقة الحركة (easing)
+    // Game loop
     let last=performance.now();
     function tick(now){
       const dt=(now-last)/1000; last=now;
-      const speedMps=held.sprint?SPRINT_SPEED_MPS:WALK_SPEED_MPS;
-      const stepDeg=(speedMps/METERS_PER_DEG_LAT)*dt;
+      const speedMps = held.sprint ? SPRINT_SPEED_MPS : WALK_SPEED_MPS;
+      const stepDeg  = (speedMps / METERS_PER_DEG_LAT) * dt;
 
       const vx=(held.right?1:0)-(held.left?1:0);
       const vy=(held.up?1:0)-(held.down?1:0);
@@ -235,13 +349,182 @@
 
       const p=[lat,lng];
       player.setLatLng(p);
-      map.panTo(p,PAN_OPTS);
+      map.panTo(p, PAN_OPTS);
 
       savePos(dt);
       updatePOIPopup();
+
       requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
+
+    // ===== Profile Panel logic =====
+    const profilePanel = document.getElementById('profilePanel');
+    const openProfileBtn = document.getElementById('openProfile');
+    openProfileBtn.addEventListener('click', ()=> profilePanel.classList.toggle('open') );
+
+    const playerSelect = document.getElementById('playerSelect');
+    const pName = document.getElementById('pName');
+    const pBio  = document.getElementById('pBio');
+    const pPhoto= document.getElementById('pPhoto');
+    const invList = document.getElementById('invList');
+
+    function refreshPlayerSelect(){
+      const list = store.profiles;
+      playerSelect.innerHTML = '';
+      list.forEach(p=>{
+        const o=document.createElement('option');
+        o.value=p.id; o.textContent=p.name || 'لاعب بدون اسم';
+        playerSelect.appendChild(o);
+      });
+      if (!store.currentId || !list.find(p=>p.id===store.currentId)) store.currentId = list[0].id;
+      playerSelect.value = store.currentId;
+      loadCurrentProfile();
+    }
+
+    function loadCurrentProfile(){
+      const p = currentProfile();
+      pName.value = p.name || '';
+      pBio.value  = p.bio  || '';
+      renderInventory();
+      // تحديث أيقونة اللاعب
+      player.setIcon(avatarIcon(p.photo));
+    }
+
+    playerSelect.addEventListener('change', ()=>{
+      store.currentId = playerSelect.value;
+      loadCurrentProfile();
+    });
+
+    document.getElementById('addPlayer').addEventListener('click', ()=>{
+      const id='p-'+Date.now();
+      const arr = store.profiles;
+      arr.push({ id, name:'New Player', bio:'', photo:null, inventory:[] });
+      store.profiles = arr; store.currentId = id; refreshPlayerSelect();
+    });
+
+    document.getElementById('delPlayer').addEventListener('click', ()=>{
+      const arr = store.profiles;
+      if (arr.length<=1) { alert('لا يمكن حذف آخر لاعب.'); return; }
+      const idx = arr.findIndex(p=>p.id===store.currentId);
+      if (idx>=0){ arr.splice(idx,1); store.profiles = arr; store.currentId = arr[0].id; refreshPlayerSelect(); }
+    });
+
+    document.getElementById('saveProfile').addEventListener('click', ()=>{
+      const arr = store.profiles;
+      const p = arr.find(x=>x.id===store.currentId);
+      if (!p) return;
+      p.name = pName.value.trim() || 'Player';
+      p.bio  = pBio.value.trim();
+      store.profiles = arr;
+      refreshPlayerSelect(); // لتحديث الاسم في القائمة
+    });
+
+    pPhoto.addEventListener('change', (e)=>{
+      const f = e.target.files?.[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const arr = store.profiles;
+        const p = arr.find(x=>x.id===store.currentId);
+        if (!p) return;
+        p.photo = reader.result;
+        store.profiles = arr;
+        player.setIcon(avatarIcon(p.photo));
+      };
+      reader.readAsDataURL(f);
+    });
+
+    function renderInventory(){
+      const p   = currentProfile();
+      invList.innerHTML = '';
+      (p.inventory || []).forEach((it, idx)=>{
+        const el = document.createElement('div');
+        el.className = 'chip';
+        el.innerHTML = `<span>${it.emoji||'📦'}</span><b>${it.name||'عنصر'}</b> <button data-i="${idx}">حذف</button>`;
+        el.querySelector('button').addEventListener('click', (e)=>{
+          const i = +e.target.getAttribute('data-i');
+          const arr = store.profiles;
+          const me = arr.find(x=>x.id===store.currentId);
+          me.inventory.splice(i,1);
+          store.profiles = arr;
+          renderInventory();
+        });
+        invList.appendChild(el);
+      });
+    }
+
+    document.getElementById('addItem').addEventListener('click', ()=>{
+      const emoji = (document.getElementById('invEmoji').value || '').trim() || '📦';
+      const name  = (document.getElementById('invName').value  || '').trim() || 'عنصر';
+      const arr   = store.profiles;
+      const p     = arr.find(x=>x.id===store.currentId);
+      if (!p.inventory) p.inventory = [];
+      p.inventory.push({ emoji, name, at: Date.now() });
+      store.profiles = arr;
+      document.getElementById('invEmoji').value='';
+      document.getElementById('invName').value='';
+      renderInventory();
+    });
+
+    // Init UI
+    refreshPlayerSelect();
+
+    // ===== Chat Panel logic =====
+    const chatPanel = document.getElementById('chatPanel');
+    document.getElementById('openChat').addEventListener('click', ()=>{ chatPanel.classList.toggle('open'); refreshChatSelectors(); renderChat(); });
+
+    const chatFrom = document.getElementById('chatFrom');
+    const chatTo   = document.getElementById('chatTo');
+    const chatList = document.getElementById('chatList');
+    const chatMsg  = document.getElementById('chatMsg');
+
+    function refreshChatSelectors(){
+      const list = store.profiles;
+      chatFrom.innerHTML = ''; chatTo.innerHTML = '';
+      list.forEach(p=>{
+        const o1=document.createElement('option'); o1.value=p.id; o1.textContent=p.name||'لاعب'; chatFrom.appendChild(o1);
+        const o2=document.createElement('option'); o2.value=p.id; o2.textContent=p.name||'لاعب'; chatTo.appendChild(o2);
+      });
+      chatFrom.value = store.currentId || list[0].id;
+      // افتراضيًا ابعت لغير نفسك
+      const defTo = list.find(p=>p.id!==chatFrom.value) || list[0];
+      chatTo.value = defTo.id;
+    }
+
+    function renderChat(){
+      const from = chatFrom.value, to = chatTo.value;
+      const msgs = store.chats.filter(m =>
+        (m.from===from && m.to===to) || (m.from===to && m.to===from)
+      ).sort((a,b)=>a.at-b.at);
+
+      chatList.innerHTML = '';
+      msgs.forEach(m=>{
+        const div = document.createElement('div');
+        div.className = 'msg ' + (m.from===from ? 'me' : 'them');
+        const sender = (store.profiles.find(p=>p.id===m.from)||{}).name || 'مجهول';
+        const time = new Date(m.at).toLocaleTimeString();
+        div.innerHTML = `<div>${m.text}</div><small>${sender} • ${time}</small>`;
+        chatList.appendChild(div);
+      });
+      chatList.scrollTop = chatList.scrollHeight;
+    }
+
+    chatFrom.addEventListener('change', ()=>{ renderChat(); });
+    chatTo  .addEventListener('change', ()=>{ renderChat(); });
+
+    document.getElementById('sendMsg').addEventListener('click', ()=>{
+      const text = chatMsg.value.trim();
+      if (!text) return;
+      const from = chatFrom.value, to = chatTo.value;
+      const arr = store.chats;
+      arr.push({ id:'m-'+Date.now(), from, to, text, at: Date.now() });
+      store.chats = arr;
+      chatMsg.value='';
+      renderChat();
+    });
+
+    chatMsg.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); document.getElementById('sendMsg').click(); } });
   </script>
 </body>
 </html>
